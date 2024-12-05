@@ -435,6 +435,11 @@ static eReturnValues create_JSON_File_For_ATA_Device_Statistics(tDevice *device,
     //Add version information
     json_object_object_add(rootNode, "Device Statistics Version", json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
 
+    //Add general drive information
+    json_object_object_add(rootNode, "Model Name", json_object_new_string(device->drive_info.product_identification));
+    json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
+    json_object_object_add(rootNode, "Firmware Version", json_object_new_string(device->drive_info.product_revision));
+
     if (deviceStatictics->sataStatistics.generalStatisticsSupported)
     {
         atleastOneStatisticsAvailable = true;
@@ -735,7 +740,7 @@ static eReturnValues create_JSON_File_For_ATA_Device_Statistics(tDevice *device,
     return ret;
 }
 
-static eReturnValues create_JSON_File_For_SCSI_Device_Statistics(ptrDeviceStatistics deviceStatictics, ptrSeagateDeviceStatistics seagateDeviceStatistics, bool seagateDeviceStatisticsAvailable, char** jsonFormat)
+static eReturnValues create_JSON_File_For_SCSI_Device_Statistics(tDevice *device, ptrDeviceStatistics deviceStatictics, ptrSeagateDeviceStatistics seagateDeviceStatistics, bool seagateDeviceStatisticsAvailable, char** jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
     bool atleastOneStatisticsAvailable = false;
@@ -752,6 +757,11 @@ static eReturnValues create_JSON_File_For_SCSI_Device_Statistics(ptrDeviceStatis
 
     //Add version information
     json_object_object_add(rootNode, "Device Statistics Version", json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
+
+    //Add general drive information
+    json_object_object_add(rootNode, "Model Name", json_object_new_string(device->drive_info.product_identification));
+    json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
+    json_object_object_add(rootNode, "Firmware Version", json_object_new_string(device->drive_info.product_revision));
 
     if (deviceStatictics->sasStatistics.writeErrorCountersSupported)
     {
@@ -1177,7 +1187,7 @@ eReturnValues create_JSON_File_For_Device_Statistics(tDevice *device, ptrDeviceS
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        ret = create_JSON_File_For_SCSI_Device_Statistics(deviceStatictics, seagateDeviceStatistics, seagateDeviceStatisticsAvailable, jsonFormat);
+        ret = create_JSON_File_For_SCSI_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics, seagateDeviceStatisticsAvailable, jsonFormat);
     }
 
     return ret;
