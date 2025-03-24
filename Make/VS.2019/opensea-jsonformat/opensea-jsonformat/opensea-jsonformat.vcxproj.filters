@@ -24,9 +24,15 @@
     <ClInclude Include="..\..\..\..\include\opensea_jsonformat_version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\smart_attribute_json.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\smart_attribute_json.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

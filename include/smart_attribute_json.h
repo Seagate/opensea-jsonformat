@@ -1,5 +1,5 @@
 //
-// device_statistics_json.h
+// smart_attribute_json.h
 //
 // Do NOT modify or remove this copyright and confidentiality notice.
 //
@@ -14,14 +14,13 @@
 //
 // *****************************************************************************
 
-// \file device_statistics_json.h
-// \brief This file defines types and functions related to the JSON-based outptu for Device Statistics log.
+// \file smart_attribute_json.h
+// \brief This file defines types and functions related to the JSON-based output for SMART Attributes.
 
 #pragma once
 
 #include "common_public.h"
 #include "common_types.h"
-#include "device_statistics.h"
 #include "jsonformat_common.h"
 #include "seagate_operations.h"
 
@@ -30,17 +29,9 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1)
-    M_PARAM_RO(2)
-    M_PARAM_RO(3)
-    M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_Output_For_Device_Statistics(tDevice*                   device,
-                                             ptrDeviceStatistics        deviceStatictics,
-                                             ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                             bool                       seagateDeviceStatisticsAvailable,
-                                             char**                     jsonFormat);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_WO(2)
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice* device, char** jsonFormat);
 
 #if defined(__cplusplus)
 }

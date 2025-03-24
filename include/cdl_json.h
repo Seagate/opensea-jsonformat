@@ -1,5 +1,5 @@
 //
-// cdl_config_file.h
+// cdl_json.h
 //
 // Do NOT modify or remove this copyright and confidentiality notice.
 //
@@ -15,23 +15,34 @@
 // *****************************************************************************
 
 // \file cdl_json.h
-// \brief This file defines types and functions related to the new JSON-based Seagate CDL config file process.
+// \brief This file defines types and functions related to the new JSON-based output for CDL config.
 
 #pragma once
 
-#include "common_types.h"
-#include "common_public.h"
 #include "cdl.h"
+#include "common_public.h"
+#include "common_types.h"
 #include "jsonformat_common.h"
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_CDL_Settings(tDevice*      device,
+                                                                           tCDLSettings* cdlSettings,
+                                                                           const char*   logPath);
 
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_CDL_Settings(tDevice *device, tCDLSettings *cdlSettings, const char* logPath);
-    OPENSEA_JSONFORMAT_API eReturnValues parse_JSON_File_For_CDL_Settings(tDevice *device, tCDLSettings *cdlSettings, const char* fileName, bool skipValidation);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1)
+    M_PARAM_RW(2)
+    OPENSEA_JSONFORMAT_API eReturnValues parse_JSON_File_For_CDL_Settings(tDevice*      device,
+                                                                          tCDLSettings* cdlSettings,
+                                                                          const char*   fileName,
+                                                                          bool          skipValidation);
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
