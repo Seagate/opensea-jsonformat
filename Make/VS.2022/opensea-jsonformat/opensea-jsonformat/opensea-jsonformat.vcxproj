@@ -67,12 +67,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\cdl_json.h" />
     <ClInclude Include="..\..\..\..\include\device_statistics_json.h" />
     <ClInclude Include="..\..\..\..\include\jsonformat_common.h" />
     <ClInclude Include="..\..\..\..\include\opensea_jsonformat_version.h" />
     <ClInclude Include="..\..\..\..\include\smart_attribute_json.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\cdl_json.c" />
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c" />
     <ClCompile Include="..\..\..\..\src\smart_attribute_json.c" />
   </ItemGroup>
