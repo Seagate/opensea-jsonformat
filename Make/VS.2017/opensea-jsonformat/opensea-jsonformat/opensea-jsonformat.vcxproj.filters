@@ -18,6 +18,9 @@
     <ClInclude Include="..\..\..\..\include\device_statistics_json.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\cdl_json.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\jsonformat_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -30,6 +33,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\cdl_json.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\smart_attribute_json.c">
