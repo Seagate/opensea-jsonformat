@@ -474,27 +474,17 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                                                           const char*   fileName,
                                                           bool          skipValidation)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = SUCCESS;
 
     secureFileInfo* cdlJsonfile = secure_Open_File(fileName, "r", M_NULLPTR, M_NULLPTR, M_NULLPTR);
     if (cdlJsonfile && cdlJsonfile->error == SEC_FILE_SUCCESS)
     {
-#if defined(_DEBUG)
-        printf("%s: file open : %s\n", __FUNCTION__, fileName);
-#endif
         char* jsonMem = C_CAST(char*, safe_calloc(cdlJsonfile->fileSize, sizeof(uint8_t)));
         if (jsonMem)
         {
             if (SEC_FILE_SUCCESS == secure_Read_File(cdlJsonfile, jsonMem, cdlJsonfile->fileSize, sizeof(char),
                                                      cdlJsonfile->fileSize, M_NULLPTR))
             {
-#if defined(_DEBUG)
-                printf("%s: reading json objects\n", __FUNCTION__);
-#endif
                 json_object* rootObj = json_tokener_parse(jsonMem);
                 if (rootObj != M_NULLPTR)
                 {
@@ -502,9 +492,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                     struct json_object* childObj = M_NULLPTR;
                     if (json_object_object_get_ex(rootObj, "CDL Feature Version", &childObj) != 0)
                     {
-#if defined(_DEBUG)
-                        printf("%s: reading \"CDL Feature Version\"\n", __FUNCTION__);
-#endif
                         const char* charValue = json_object_get_string(childObj);
                         if (strncmp(charValue, CDL_FEATURE_VERSION,
                                     M_Min(safe_strlen(charValue), safe_strlen(CDL_FEATURE_VERSION))) != 0)
@@ -518,9 +505,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                     // Parse performance vs command completion
                     if (json_object_object_get_ex(rootObj, "Performance Versus Command Completion", &childObj) != 0)
                     {
-#if defined(_DEBUG)
-                        printf("%s: reading \"Performance Versus Command Completion\"\n", __FUNCTION__);
-#endif
                         const char* charValue = json_object_get_string(childObj);
                         if (!get_And_Validate_Integer_Input_Uint8(
                                 charValue, M_NULLPTR, ALLOW_UNIT_NONE,
@@ -540,18 +524,11 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                                             C_CAST(uint8_t, (descriptorIndex + 1)));
                         if (json_object_object_get_ex(rootObj, descriptorKey, &childObj) != 0)
                         {
-#if defined(_DEBUG)
-                            printf("%s: reading %s\n", __FUNCTION__, descriptorKey);
-#endif
                             struct json_object* descriptorObj = M_NULLPTR;
 
                             // Parse Time Field Unit Type
                             if (json_object_object_get_ex(childObj, "Time Field Unit", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Time Field Unit for %s\n", __FUNCTION__, descriptorKey);
-#endif
-
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 translate_String_To_TimeUnitType(
                                     charValue,
@@ -561,9 +538,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Inactive Time
                             if (json_object_object_get_ex(childObj, "Inactive Time", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Inactive Time for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 uint32_t value = C_CAST(uint32_t, json_object_get_uint64(descriptorObj));
                                 cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex]
                                     .inactiveTime = convert_CDL_TimeField_To_Microseconds(
@@ -574,9 +548,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Inactive Time Policy
                             if (json_object_object_get_ex(childObj, "Inactive Time Policy", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Inactive Time Policy for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 if (!get_And_Validate_Integer_Input_Uint8(
                                         charValue, M_NULLPTR, ALLOW_UNIT_NONE,
@@ -592,9 +563,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Active Time
                             if (json_object_object_get_ex(childObj, "Active Time", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Active Time for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 uint32_t value = C_CAST(uint32_t, json_object_get_uint64(descriptorObj));
                                 cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex]
                                     .activeTime = convert_CDL_TimeField_To_Microseconds(
@@ -605,9 +573,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Active Time Policy
                             if (json_object_object_get_ex(childObj, "Active Time Policy", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Active Time Policy for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 if (!get_And_Validate_Integer_Input_Uint8(
                                         charValue, M_NULLPTR, ALLOW_UNIT_NONE,
@@ -623,9 +588,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Total Time
                             if (json_object_object_get_ex(childObj, "Total Time", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Total Time for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 uint32_t value = C_CAST(uint32_t, json_object_get_uint64(descriptorObj));
                                 cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex]
                                     .totalTime = convert_CDL_TimeField_To_Microseconds(
@@ -636,9 +598,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Total Time Policy
                             if (json_object_object_get_ex(childObj, "Total Time Policy", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Total Time Policy for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 if (!get_And_Validate_Integer_Input_Uint8(
                                         charValue, M_NULLPTR, ALLOW_UNIT_NONE,
@@ -667,9 +626,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Time Field Unit Type
                             if (json_object_object_get_ex(childObj, "Time Field Unit", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Time Field Unit for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 translate_String_To_TimeUnitType(
                                     charValue,
@@ -679,9 +635,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Inactive Time
                             if (json_object_object_get_ex(childObj, "Inactive Time", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Inactive Time for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 uint32_t value = C_CAST(uint32_t, json_object_get_uint64(descriptorObj));
                                 cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex]
                                     .inactiveTime = convert_CDL_TimeField_To_Microseconds(
@@ -692,9 +645,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Inactive Time Policy
                             if (json_object_object_get_ex(childObj, "Inactive Time Policy", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Inactive Time Policy for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 if (!get_And_Validate_Integer_Input_Uint8(
                                         charValue, M_NULLPTR, ALLOW_UNIT_NONE,
@@ -710,9 +660,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Active Time
                             if (json_object_object_get_ex(childObj, "Active Time", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Active Time for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 uint32_t value = C_CAST(uint32_t, json_object_get_uint64(descriptorObj));
                                 cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex]
                                     .activeTime = convert_CDL_TimeField_To_Microseconds(
@@ -723,9 +670,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Active Time Policy
                             if (json_object_object_get_ex(childObj, "Active Time Policy", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Active Time Policy for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 if (!get_And_Validate_Integer_Input_Uint8(
                                         charValue, M_NULLPTR, ALLOW_UNIT_NONE,
@@ -741,9 +685,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Total Time
                             if (json_object_object_get_ex(childObj, "Total Time", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Total Time for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 uint32_t value = C_CAST(uint32_t, json_object_get_uint64(descriptorObj));
                                 cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex]
                                     .totalTime = convert_CDL_TimeField_To_Microseconds(
@@ -754,9 +695,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
                             // Parse Total Time Policy
                             if (json_object_object_get_ex(childObj, "Total Time Policy", &descriptorObj) != 0)
                             {
-#if defined(_DEBUG)
-                                printf("%s: reading Total Time Policy for %s\n", __FUNCTION__, descriptorKey);
-#endif
                                 const char* charValue = json_object_get_string(descriptorObj);
                                 if (!get_And_Validate_Integer_Input_Uint8(
                                         charValue, M_NULLPTR, ALLOW_UNIT_NONE,
@@ -826,10 +764,6 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
     }
 
     free_Secure_File_Info(&cdlJsonfile);
-
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
 
     return ret;
 }
@@ -1127,10 +1061,6 @@ eReturnValues parse_JSON_File_For_CDL_Settings(tDevice*      device,
                                                const char*   fileName,
                                                bool          skipValidation)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = SUCCESS;
 
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1141,10 +1071,6 @@ eReturnValues parse_JSON_File_For_CDL_Settings(tDevice*      device,
     {
         ret = parse_SCSI_JSON_File_For_CDL_Settings(device, cdlSettings, fileName, skipValidation);
     }
-
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
 
     return ret;
 }
