@@ -38,13 +38,14 @@
 
 static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAnalyzedAttribute smartAnalyzedAttribute)
 {
-#define MAX_ATTRIBUTE_NODE_NAME_LENGTH   21
-#define MAX_FIELD_NODE_NAME_LENGTH       15
-#define MAX_RAW_DATA_VALUE_IN_HEX_LENGTH 17
-#define MAX_INT64_TO_DEC_STRING_LENGHT   21
-#define MAX_DOUBLE_TO_DEC_STRING_LENGHT  21
-#define MAX_UINT16_TO_HEX_STRING_LENGHT  7
-#define MAX_UINT8_TO_HEX_STRING_LENGHT   5
+#define MAX_ATTRIBUTE_NODE_NAME_LENGTH      21
+#define MAX_FIELD_NODE_NAME_LENGTH          15
+#define MAX_ANALYZED_FIELD_NODE_NAME_LENGTH 21
+#define MAX_RAW_DATA_VALUE_IN_HEX_LENGTH    17
+#define MAX_INT64_TO_DEC_STRING_LENGHT      21
+#define MAX_DOUBLE_TO_DEC_STRING_LENGHT     21
+#define MAX_UINT16_TO_HEX_STRING_LENGHT     7
+#define MAX_UINT8_TO_HEX_STRING_LENGHT      5
 
     json_object* attributeNode = json_object_new_object();
 
@@ -149,96 +150,152 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
     // add raw fields
     if (smartAnalyzedAttribute.rawData.userFieldCount > 0)
     {
-        json_object* fields = json_object_new_object();
-        for (uint8_t field = 0; field < smartAnalyzedAttribute.rawData.userFieldCount; field++)
+        json_object* fieldArray = json_object_new_array();
+        for (uint8_t fieldCount = 0; fieldCount < smartAnalyzedAttribute.rawData.userFieldCount; fieldCount++)
         {
             json_object* fieldNode = json_object_new_object();
-            json_object_object_add(fieldNode, "name",
-                                   json_object_new_string(smartAnalyzedAttribute.rawData.rawField[field].fieldName));
-
+            json_object_object_add(
+                fieldNode, "name",
+                json_object_new_string(smartAnalyzedAttribute.rawData.rawField[fieldCount].fieldName));
             char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
-            get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.rawField[field].fieldUnit, &unitString);
+            get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.rawField[fieldCount].fieldUnit, &unitString,
+                                      false);
             DECLARE_ZERO_INIT_ARRAY(char, fieldValue,
                                     (MAX_INT64_TO_DEC_STRING_LENGHT +
                                      MAX_RAW_FEILD_UNIT_STRING_LENGTH)); // to be able to hold the unit string
-
             if (safe_strlen(unitString) > 0)
             {
                 snprintf_err_handle(fieldValue, (MAX_INT64_TO_DEC_STRING_LENGHT + MAX_RAW_FEILD_UNIT_STRING_LENGTH),
-                                    "%" PRId64 " %s", smartAnalyzedAttribute.rawData.rawField[field].fieldValue,
+                                    "%" PRId64 " %s", smartAnalyzedAttribute.rawData.rawField[fieldCount].fieldValue,
                                     unitString);
             }
             else
             {
-
                 snprintf_err_handle(fieldValue, MAX_INT64_TO_DEC_STRING_LENGHT, "%" PRId64 "",
-                                    smartAnalyzedAttribute.rawData.rawField[field].fieldValue);
+                                    smartAnalyzedAttribute.rawData.rawField[fieldCount].fieldValue);
             }
             json_object_object_add(fieldNode, "value", json_object_new_string(fieldValue));
             safe_free(&unitString);
 
+            // create new node, name if Field#? and then add name-value pair in this node
+            json_object* field = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field # %" PRIu8, field);
+            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field # %" PRIu8, fieldCount);
+            json_object_object_add(field, fieldNodeName, fieldNode);
 
-            json_object_object_add(fields, fieldNodeName, fieldNode);
+            // Add it into array
+            json_object_array_add(fieldArray, field);
         }
-        json_object_object_add(rawDataNode, "Fields", fields);
+        json_object_object_add(rawDataNode, "Fields", fieldArray);
     }
-    // add analyzed value in double
-    if (smartAnalyzedAttribute.rawData.doubleAnalyzedValueValid)
+    if (smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValid ||
+        smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValid ||
+        smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValid)
     {
-        char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
-        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.doubleAnalyzedValueUnit, &unitString);
-        if (safe_strlen(unitString) > 0)
+        json_object* analyzedArray = json_object_new_array();
+
+        // create node for analyzed node
+        uint8_t analyzedFieldCount = 0;
+
+        // add analyzed value in double
+        if (smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValid)
         {
-            DECLARE_ZERO_INIT_ARRAY(char, fieldValue,
-                                    (MAX_DOUBLE_TO_DEC_STRING_LENGHT +
-                                     MAX_RAW_FEILD_UNIT_STRING_LENGTH)); // to be able to hold the unit string
-            snprintf_err_handle(fieldValue, (MAX_DOUBLE_TO_DEC_STRING_LENGHT + MAX_RAW_FEILD_UNIT_STRING_LENGTH),
-                                "%f %s", smartAnalyzedAttribute.rawData.doubleAnalyzedValue, unitString);
-            json_object_object_add(rawDataNode, smartAnalyzedAttribute.rawData.doubleAnalyzedString,
-                                   json_object_new_string(fieldValue));
+            json_object* doubleTypeNode = json_object_new_object();
+            json_object_object_add(doubleTypeNode, "name",
+                                   json_object_new_string(smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldName));
+
+            char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+            get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldUnit, &unitString, false);
+            if (safe_strlen(unitString) > 0)
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, fieldValue,
+                                        (MAX_DOUBLE_TO_DEC_STRING_LENGHT +
+                                         MAX_RAW_FEILD_UNIT_STRING_LENGTH)); // to be able to hold the unit string
+                snprintf_err_handle(fieldValue, (MAX_DOUBLE_TO_DEC_STRING_LENGHT + MAX_RAW_FEILD_UNIT_STRING_LENGTH),
+                                    "%f %s", smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValue, unitString);
+                json_object_object_add(doubleTypeNode, "value", json_object_new_string(fieldValue));
+            }
+            else
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, fieldValue, MAX_DOUBLE_TO_DEC_STRING_LENGHT);
+                snprintf_err_handle(fieldValue, MAX_DOUBLE_TO_DEC_STRING_LENGHT, "%f",
+                                    smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValue);
+                json_object_object_add(doubleTypeNode, "value", json_object_new_string(fieldValue));
+            }
+            safe_free(&unitString);
+
+            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            json_object* node = json_object_new_object();
+            DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+                                (analyzedFieldCount + 1));
+            json_object_object_add(node, fieldNodeName, doubleTypeNode);
+            analyzedFieldCount++;
+
+            // add this in array
+            json_object_array_add(analyzedArray, node);
         }
-        else
+        // add analyzed value in int64_t
+        if (smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValid)
         {
-            DECLARE_ZERO_INIT_ARRAY(char, fieldValue, MAX_DOUBLE_TO_DEC_STRING_LENGHT);
-            snprintf_err_handle(fieldValue, MAX_DOUBLE_TO_DEC_STRING_LENGHT, "%f",
-                                smartAnalyzedAttribute.rawData.doubleAnalyzedValue);
-            json_object_object_add(rawDataNode, smartAnalyzedAttribute.rawData.doubleAnalyzedString,
-                                   json_object_new_string(fieldValue));
+            json_object* int64TypeNode = json_object_new_object();
+            json_object_object_add(int64TypeNode, "name",
+                                   json_object_new_string(smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldName));
+
+            char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+            get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldUnit, &unitString, false);
+            if (safe_strlen(unitString) > 0)
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, fieldValue,
+                                        (MAX_INT64_TO_DEC_STRING_LENGHT +
+                                         MAX_RAW_FEILD_UNIT_STRING_LENGTH)); // to be able to hold the unit string
+                snprintf_err_handle(fieldValue, (MAX_INT64_TO_DEC_STRING_LENGHT + MAX_RAW_FEILD_UNIT_STRING_LENGTH),
+                                    "%" PRId64 " %s", smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValue,
+                                    unitString);
+                json_object_object_add(int64TypeNode, "value", json_object_new_string(fieldValue));
+            }
+            else
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, fieldValue, MAX_INT64_TO_DEC_STRING_LENGHT);
+                snprintf_err_handle(fieldValue, MAX_INT64_TO_DEC_STRING_LENGHT, "%" PRId64 "",
+                                    smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValue);
+                json_object_object_add(int64TypeNode, "value", json_object_new_string(fieldValue));
+            }
+            safe_free(&unitString);
+
+            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            json_object* node = json_object_new_object();
+            DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+                                (analyzedFieldCount + 1));
+            json_object_object_add(node, fieldNodeName, int64TypeNode);
+            analyzedFieldCount++;
+
+            // add this in array
+            json_object_array_add(analyzedArray, node);
         }
-        safe_free(&unitString);
-    }
-    // add analyzed value in int64_t
-    if (smartAnalyzedAttribute.rawData.int64AnalyzedValueValid)
-    {
-        char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
-        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.int64AnalyzedValueUnit, &unitString);
-        if (safe_strlen(unitString) > 0)
+        // add analyzed value in boolean
+        if (smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValid)
         {
-            DECLARE_ZERO_INIT_ARRAY(char, fieldValue,
-                                    (MAX_INT64_TO_DEC_STRING_LENGHT +
-                                     MAX_RAW_FEILD_UNIT_STRING_LENGTH)); // to be able to hold the unit string
-            snprintf_err_handle(fieldValue, (MAX_INT64_TO_DEC_STRING_LENGHT + MAX_RAW_FEILD_UNIT_STRING_LENGTH),
-                                "%" PRId64 " %s", smartAnalyzedAttribute.rawData.int64AnalyzedValue, unitString);
-            json_object_object_add(rawDataNode, smartAnalyzedAttribute.rawData.int64AnalyzedString,
-                                   json_object_new_string(fieldValue));
+            json_object* stringTypeNode = json_object_new_object();
+            json_object_object_add(stringTypeNode, "name",
+                                   json_object_new_string(smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldName));
+            json_object_object_add(stringTypeNode, "value",
+                                   json_object_new_string(smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValue));
+
+            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            json_object* node = json_object_new_object();
+            DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+                                (analyzedFieldCount + 1));
+            json_object_object_add(node, fieldNodeName, stringTypeNode);
+            analyzedFieldCount++;
+
+            // add this in array
+            json_object_array_add(analyzedArray, node);
         }
-        else
-        {
-            DECLARE_ZERO_INIT_ARRAY(char, fieldValue, MAX_INT64_TO_DEC_STRING_LENGHT);
-            snprintf_err_handle(fieldValue, MAX_INT64_TO_DEC_STRING_LENGHT, "%" PRId64 "",
-                                smartAnalyzedAttribute.rawData.int64AnalyzedValue);
-            json_object_object_add(rawDataNode, smartAnalyzedAttribute.rawData.int64AnalyzedString,
-                                   json_object_new_string(fieldValue));
-        }
-        safe_free(&unitString);
-    }
-    // add analyzed value in boolean
-    if (smartAnalyzedAttribute.rawData.stringAnalyzedValueValid)
-    {
-        json_object_object_add(rawDataNode, smartAnalyzedAttribute.rawData.stringAnalyzedString,
-                               json_object_new_string(smartAnalyzedAttribute.rawData.stringAnalyzedValue));
+
+        json_object_object_add(rawDataNode, "Analyzed Fields", analyzedArray);
     }
     json_object_object_add(attributeNode, "Raw Data Information", rawDataNode);
 
