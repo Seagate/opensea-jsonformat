@@ -19,19 +19,24 @@
 
 #pragma once
 
-#include "common_types.h"
 #include "common_public.h"
+#include "common_types.h"
 #include "device_statistics.h"
-#include "seagate_operations.h"
 #include "jsonformat_common.h"
+#include "seagate_operations.h"
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_Device_Statistics(tDevice *device, ptrDeviceStatistics deviceStatictics, ptrSeagateDeviceStatistics seagateDeviceStatistics, bool seagateDeviceStatisticsAvailable, char** jsonFormat);
+    OPENSEA_JSONFORMAT_API eReturnValues
+    create_JSON_File_For_Device_Statistics(tDevice*                   device,
+                                           ptrDeviceStatistics        deviceStatictics,
+                                           ptrSeagateDeviceStatistics seagateDeviceStatistics,
+                                           bool                       seagateDeviceStatisticsAvailable,
+                                           char**                     jsonFormat);
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
