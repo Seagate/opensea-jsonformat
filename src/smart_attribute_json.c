@@ -361,7 +361,7 @@ eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice* device, char** js
         {
             ret = create_JSON_Output_For_ATA(device, smartAnalyzedData, jsonFormat);
         }
-        safe_free(&smartAnalyzedData);
+        safe_free_ata_smart_analyzed_data(&smartAnalyzedData);
     }
 
     return ret;
