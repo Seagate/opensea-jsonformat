@@ -251,8 +251,7 @@ if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
   endif
 endif
 
-src_files = ['src/cdl_json.c', 
-             'src/device_statistics_json.c']
+src_files = ['src/device_statistics_json.c', 'src/cdl_json.c']
 
 if target_machine.system() == 'windows'
   global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
