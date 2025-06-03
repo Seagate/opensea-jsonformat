@@ -111,6 +111,7 @@ ifeq ($(UNAME),AIX)
 endif
 
 LIB_SRC_FILES = \
+	$(SRC_DIR)cdl_json.c \
 	$(SRC_DIR)device_statistics_json.c
 
 UNAME := $(shell uname)
