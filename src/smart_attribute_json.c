@@ -176,7 +176,7 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             // create new node, name if Field#? and then add name-value pair in this node
             json_object* field = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field # %" PRIu8, fieldCount);
+            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field # %" PRIu8, (fieldCount + 1));
             json_object_object_add(field, fieldNodeName, fieldNode);
 
             // Add it into array
@@ -316,7 +316,7 @@ static eReturnValues create_JSON_Output_For_ATA(tDevice*              device,
         return MEMORY_FAILURE;
 
     // Add version information
-    json_object_object_add(rootNode, "SMART Attribute Json Version",
+    json_object_object_add(rootNode, "SMART Attribute JSON Version",
                            json_object_new_string(SMART_ATTRIBUTE_JSON_VERSION));
 
     // Add general drive information

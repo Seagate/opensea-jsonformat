@@ -259,6 +259,7 @@ endif
 
 src_files = ['src/cdl_json.c', 
              'src/device_statistics_json.c',
+             'src/farm_json.c',
              'src/smart_attribute_json.c']
 
 if target_machine.system() == 'windows'

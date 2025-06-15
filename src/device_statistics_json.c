@@ -481,7 +481,7 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(tDevice*      
         return MEMORY_FAILURE;
 
     // Add version information
-    json_object_object_add(rootNode, "Device Statistics Version",
+    json_object_object_add(rootNode, "Device Statistics JSON Version",
                            json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
 
     // Add general drive information
@@ -987,7 +987,7 @@ static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(tDevice*     
         return MEMORY_FAILURE;
 
     // Add version information
-    json_object_object_add(rootNode, "Device Statistics Version",
+    json_object_object_add(rootNode, "Device Statistics JSON Version",
                            json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
 
     // Add general drive information

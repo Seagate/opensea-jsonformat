@@ -72,11 +72,13 @@
     <ClInclude Include="..\..\..\..\include\jsonformat_common.h" />
     <ClInclude Include="..\..\..\..\include\opensea_jsonformat_version.h" />
     <ClInclude Include="..\..\..\..\include\smart_attribute_json.h" />
+    <ClInclude Include="..\..\..\..\include\farm_json.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\cdl_json.c" />
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c" />
     <ClCompile Include="..\..\..\..\src\smart_attribute_json.c" />
+    <ClCompile Include="..\..\..\..\src\farm_json.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
