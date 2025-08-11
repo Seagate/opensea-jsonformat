@@ -478,6 +478,7 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
 eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects, char** jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    bool          atleastOneStatisticsAvailable = false;
 
     if (defects == M_NULLPTR)
     {
@@ -489,31 +490,32 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
     if (defects->containsPrimaryList)
     {
         json_object_object_add(scsiDefectJson, "Contains Primary List", json_object_new_boolean(true));
-        ret = SUCCESS;
+        atleastOneStatisticsAvailable = true;
     }
 
     if (defects->containsGrownList)
     {
         json_object_object_add(scsiDefectJson, "Contains Grown List", json_object_new_boolean(true));
-        ret = SUCCESS;
+        atleastOneStatisticsAvailable = true;
     }
 
     if (defects->generation > 0)
     {
         json_object_object_add(scsiDefectJson, "Generation Code", json_object_new_int(defects->generation));
-        ret = SUCCESS;
+        atleastOneStatisticsAvailable = true;
     }
 
     if (defects->deviceHasMultipleLogicalUnits)
     {
         json_object_object_add(scsiDefectJson, "Device Has Multiple Logical Units", json_object_new_boolean(true));
-        ret = SUCCESS;
+        atleastOneStatisticsAvailable = true;
     }
 
     switch (defects->format)
     {
     case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
     {
+        atleastOneStatisticsAvailable = true;
         json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Short Block Format"));
 
         if (defects->numberOfElements > UINT32_C(0))
@@ -537,6 +539,7 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
     }
     case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
     {
+        atleastOneStatisticsAvailable = true;
         json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Long Block Format"));
 
         if (defects->numberOfElements > UINT32_C(0))
@@ -561,6 +564,7 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
 
     case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
     {
+        atleastOneStatisticsAvailable = true;
         json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Extended Physical Sector Format"));
         json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(defects->numberOfElements));
 
@@ -628,6 +632,7 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
 
     case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
     {
+        atleastOneStatisticsAvailable = true;
         json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Physical Sector Format"));
         json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(defects->numberOfElements));
 
@@ -696,6 +701,7 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
 
     case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
     {
+        atleastOneStatisticsAvailable = true;
         json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Extended Bytes From Index Format"));
 
         if (defects->numberOfElements > UINT32_C(0))
@@ -749,6 +755,7 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
     }
     case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
     {
+        atleastOneStatisticsAvailable = true;
         json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Bytes From Index Format"));
 
         if (defects->numberOfElements > UINT32_C(0))
@@ -798,10 +805,17 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
         const char* jstr =
         json_object_to_json_string_ext(scsiDefectJson, JSON_C_TO_STRING_PRETTY | JSON_C_TO_STRING_NOSLASHESCAPE);
 
-                if (asprintf(jsonFormat, "%s", jstr) < 0)
-        {
-            ret = MEMORY_FAILURE;
-        }
 
+                    if (atleastOneStatisticsAvailable)
+        {
+            ret = SUCCESS;
+
+            // copy the json output into string
+            if (asprintf(jsonFormat, "%s", jstr) < 0)
+            {
+                ret = MEMORY_FAILURE;
+            }
+        }
+        json_object_put(scsiDefectJson);
     return ret;
 }
