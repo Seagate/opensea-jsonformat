@@ -16,8 +16,6 @@
 #pragma once
 
 #include "common_public.h"
-#include "common_types.h"
-#include "device_statistics.h"
 #include "defect.h"
 #include "jsonformat_common.h"
 #include "seagate_operations.h"
