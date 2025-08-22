@@ -10,7 +10,7 @@
 //
 // ******************************************************************************************
 //
-// \file device_statistics_json.c
+// \file scsi_defect_list_json.c
 // \brief This file defines types and functions related to the JSON-based output for Device Statistics log.
 
 #include <json.h>
@@ -338,9 +338,6 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
         break;
     }
 
-
-
-        // Add other formats here as needed
     }
 
 
