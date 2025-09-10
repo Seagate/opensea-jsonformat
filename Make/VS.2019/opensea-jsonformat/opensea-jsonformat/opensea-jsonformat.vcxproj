@@ -79,6 +79,7 @@
     <ClCompile Include="..\..\..\..\src\cdl_json.c" />
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c" />
     <ClCompile Include="..\..\..\..\src\farm_json.c" />
+    <ClCompile Include="..\..\..\..\src\jsonformat_common.c" />
     <ClCompile Include="..\..\..\..\src\scsi_defect_list_json.c" />
     <ClCompile Include="..\..\..\..\src\smart_attribute_json.c" />
   </ItemGroup>

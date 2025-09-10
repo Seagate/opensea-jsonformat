@@ -13,9 +13,6 @@
 // \file cdl_json.c
 // \brief This file defines types and functions related to the JSON-based output for Seagate CDL config.
 
-#include <json.h>
-#include <json_object.h>
-
 #include "cdl_json.h"
 #include "io_utils.h"
 #include "logs.h"

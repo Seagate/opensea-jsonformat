@@ -11,350 +11,337 @@
 // ******************************************************************************************
 //
 // \file scsi_defect_list_json.c
-// \brief This file defines types and functions related to the JSON-based output for Device Statistics log.
+// \brief This file defines types and functions related to the JSON-based output for SCSI Defect log.
 
-#include <json.h>
-#include <json_object.h>
 #include "scsi_defect_list_json.h"
+#include "io_utils.h"
 
-eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects, char** jsonFormat)
+#define COMBINE_SCSI_DEFECT_LIST_JSON_VERSIONS_(x, y, z) #x "." #y "." #z
+#define COMBINE_SCSI_DEFECT_LIST_JSON_VERSIONS(x, y, z)  COMBINE_SCSI_DEFECT_LIST_JSON_VERSIONS_(x, y, z)
+
+#define SCSI_DEFECT_LIST_JSON_MAJOR_VERSION              1
+#define SCSI_DEFECT_LIST_JSON_MINOR_VERSION              0
+#define SCSI_DEFECT_LIST_JSON_PATCH_VERSION              0
+
+#define SCSI_DEFECT_LIST_JSON_VERSION                                                                                  \
+    COMBINE_SCSI_DEFECT_LIST_JSON_VERSIONS(SCSI_DEFECT_LIST_JSON_MAJOR_VERSION, SCSI_DEFECT_LIST_JSON_MINOR_VERSION,   \
+                                           SCSI_DEFECT_LIST_JSON_PATCH_VERSION)
+
+#define MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH 35
+#define MAX_UINT64_TO_DEC_STRING_LENGHT    21
+#define MAX_UINT32_TO_DEC_STRING_LENGHT    11
+#define MAX_UINT16_TO_DEC_STRING_LENGHT    6
+#define MAX_UINT8_TO_DEC_STRING_LENGHT     4
+
+static void get_Address_Descriptor_Name(eSCSIAddressDescriptors addressDescriptorType, char** addressDescriptorName)
 {
-    eReturnValues ret = NOT_SUPPORTED;
-    bool          atleastOneStatisticsAvailable = false;
+    safe_memset(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH, 0, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH);
+    switch (addressDescriptorType)
+    {
+    case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+        snprintf_err_handle(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH, "Short Block Format");
+        break;
 
+    case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
+        snprintf_err_handle(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH,
+                            "Extended Bytes From Index Format");
+        break;
+
+    case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+        snprintf_err_handle(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH,
+                            "Extended Physical Sector Format");
+        break;
+
+    case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+        snprintf_err_handle(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH, "Long Block Format");
+        break;
+
+    case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
+        snprintf_err_handle(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH, "Bytes From Index Format");
+        break;
+
+    case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+        snprintf_err_handle(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH, "Physical Sector Format");
+        break;
+
+    case AD_VENDOR_SPECIFIC:
+    case AD_RESERVED:
+    default:
+        snprintf_err_handle(*addressDescriptorName, MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH, "Vendor Specific");
+        break;
+    }
+}
+
+eReturnValues create_JSON_Output_For_SCSI_Defect_List(tDevice*          device,
+                                                      ptrSCSIDefectList defects,
+                                                      const char*       utilityName,
+                                                      const char*       buildVersion,
+                                                      char**            jsonFormat)
+{
     if (defects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
 
-    json_object* scsiDefectJson = json_object_new_object();
+    json_object* rootNode = json_object_new_object();
 
-    if (defects->containsPrimaryList)
-    {
-        json_object_object_add(scsiDefectJson, "Contains Primary List", json_object_new_boolean(true));
-        atleastOneStatisticsAvailable = true;
-    }
+    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "SCSI Defect List",
+                                    SCSI_DEFECT_LIST_JSON_VERSION);
+    create_Node_For_Drive_Information(rootNode, device);
 
-    if (defects->containsGrownList)
+    // Add general information about the defect list
     {
-        json_object_object_add(scsiDefectJson, "Contains Grown List", json_object_new_boolean(true));
-        atleastOneStatisticsAvailable = true;
-    }
+        // create node
+        json_object* scsiDefectNode = json_object_new_object();
 
-    if (defects->generation > 0)
-    {
-        json_object_object_add(scsiDefectJson, "Generation Code", json_object_new_int(defects->generation));
-        atleastOneStatisticsAvailable = true;
-    }
-
-    if (defects->deviceHasMultipleLogicalUnits)
-    {
-        json_object_object_add(scsiDefectJson, "Device Has Multiple Logical Units", json_object_new_boolean(true));
-        atleastOneStatisticsAvailable = true;
-    }
-
-    switch (defects->format)
-    {
-    case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
-    {
-        atleastOneStatisticsAvailable = true;
-        json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Short Block Format"));
-
+        // add details
+        json_object_object_add(scsiDefectNode, "Contains Primary List",
+                               json_object_new_boolean(defects->containsPrimaryList));
+        json_object_object_add(scsiDefectNode, "Contains Grown List",
+                               json_object_new_boolean(defects->containsGrownList));
+        if (defects->generation > 0)
+        {
+            DECLARE_ZERO_INIT_ARRAY(char, generationCodeValue, MAX_UINT16_TO_DEC_STRING_LENGHT);
+            snprintf_err_handle(generationCodeValue, MAX_UINT16_TO_DEC_STRING_LENGHT, "%" PRIu16 "",
+                                defects->generation);
+            json_object_object_add(scsiDefectNode, "Generation Code", json_object_new_string(generationCodeValue));
+        }
+        json_object_object_add(scsiDefectNode, "Device Has Multiple Logical Units",
+                               json_object_new_boolean(defects->deviceHasMultipleLogicalUnits));
+        DECLARE_ZERO_INIT_ARRAY(char, totalDefectsValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+        snprintf_err_handle(totalDefectsValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                            defects->numberOfElements);
+        json_object_object_add(scsiDefectNode, "Total Defects in list", json_object_new_string(totalDefectsValue));
         if (defects->numberOfElements > UINT32_C(0))
         {
-            json_object_object_add(scsiDefectJson, "Total Defects in List",
-                                   json_object_new_int(defects->numberOfElements));
+            char* addressDescriptorName =
+                M_REINTERPRET_CAST(char*, safe_calloc(MAX_ADDRESS_DESCRIPTOR_NAME_LENGTH, sizeof(char)));
+            get_Address_Descriptor_Name(defects->format, &addressDescriptorName);
+            json_object_object_add(scsiDefectNode, "Format", json_object_new_string(addressDescriptorName));
+            safe_free(&addressDescriptorName);
+        }
 
-            json_object* defectList = json_object_new_array();
-            for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
-            {
-                json_object_array_add(defectList, json_object_new_int(defects->block[iter].shortBlockAddress));
-            }
-            json_object_object_add(scsiDefectJson, "Defect Addresses", defectList);
-        }
-        else
-        {
-            json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(0));
-            json_object_object_add(scsiDefectJson, "Defect Addresses", json_object_new_array());
-        }
-        break;
-    }
-    case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
-    {
-        atleastOneStatisticsAvailable = true;
-        json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Long Block Format"));
-
-        if (defects->numberOfElements > UINT32_C(0))
-        {
-            json_object_object_add(scsiDefectJson, "Total Defects in List",
-                                   json_object_new_int(defects->numberOfElements));
-
-            json_object* defectList = json_object_new_array();
-            for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
-            {
-                json_object_array_add(defectList, json_object_new_int64(defects->block[iter].longBlockAddress));
-            }
-            json_object_object_add(scsiDefectJson, "Defect Addresses", defectList);
-        }
-        else
-        {
-            json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(0));
-            json_object_object_add(scsiDefectJson, "Defect Addresses", json_object_new_array());
-        }
-        break;
+        // add this node to root node
+        json_object_object_add(rootNode, "Defect List Information", scsiDefectNode);
     }
 
-    case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+    // Now add defects
+    if (defects->numberOfElements > UINT32_C(0))
     {
-        atleastOneStatisticsAvailable = true;
-        json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Extended Physical Sector Format"));
-        json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(defects->numberOfElements));
+        // create array for defect entries
+        json_object* defectList = json_object_new_array();
 
-        json_object* defectRanges = json_object_new_array();
-
-        if (defects->numberOfElements > 0)
+        // add individual defect in array
+        for (uint32_t iter = UINT32_C(0); iter < defects->numberOfElements; ++iter)
         {
-            uint32_t startCylinder = defects->physical[0].cylinderNumber;
-            uint8_t  startHead     = defects->physical[0].headNumber;
-            uint32_t startSector   = defects->physical[0].sectorNumber;
-            uint32_t endSector     = startSector;
-
-            for (uint64_t iter = 1; iter < defects->numberOfElements; ++iter)
+            switch (defects->format)
             {
-                uint32_t currCylinder = defects->physical[iter].cylinderNumber;
-                uint8_t  currHead     = defects->physical[iter].headNumber;
-                uint32_t currSector   = defects->physical[iter].sectorNumber;
+            case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, addressValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                snprintf_err_handle(addressValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                    defects->block[iter].shortBlockAddress);
+                json_object_array_add(defectList, json_object_new_string(addressValue));
+            }
+            break;
 
-                bool isSequential =
-                    (currCylinder == startCylinder) && (currHead == startHead) && (currSector == endSector + 1);
+            case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, addressValue, MAX_UINT64_TO_DEC_STRING_LENGHT);
+                snprintf_err_handle(addressValue, MAX_UINT64_TO_DEC_STRING_LENGHT, "%" PRIu64 "",
+                                    defects->block[iter].longBlockAddress);
+                json_object_array_add(defectList, json_object_new_string(addressValue));
+            }
+            break;
 
-                if (isSequential)
+            case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            {
+                // create defect node
+                json_object* defectEntry = json_object_new_object();
+
+                DECLARE_ZERO_INIT_ARRAY(char, cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                    defects->physical[iter].cylinderNumber);
+                json_object_object_add(defectEntry, "Cylinder", json_object_new_string(cylinderValue));
+
+                DECLARE_ZERO_INIT_ARRAY(char, headValue, MAX_UINT8_TO_DEC_STRING_LENGHT);
+                snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                    defects->physical[iter].headNumber);
+                json_object_object_add(defectEntry, "Head", json_object_new_string(headValue));
+
+                if (defects->physical[iter].sectorNumber == UINT32_MAX)
                 {
-                    endSector = currSector;
+                    json_object_object_add(defectEntry, "Sector", json_object_new_string("Full Track"));
                 }
                 else
                 {
-                    json_object* rangeObj = json_object_new_object();
-                    json_object_object_add(rangeObj, "Cylinder", json_object_new_int(startCylinder));
-                    json_object_object_add(rangeObj, "Head", json_object_new_int(startHead));
-                    json_object_object_add(rangeObj, "Start Sector",
-                                           startSector == MAX_28BIT ? json_object_new_string("Full Track")
-                                                                    : json_object_new_int(startSector));
-                    if (startSector != MAX_28BIT)
+                    DECLARE_ZERO_INIT_ARRAY(char, sectorValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                    snprintf_err_handle(sectorValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                        defects->physical[iter].sectorNumber);
+                    json_object_object_add(defectEntry, "Sector", json_object_new_string(sectorValue));
+
+                    // check if there are multiple sector with same cylinder and head
+                    uint32_t checkRepeatIter = iter + 1;
+                    uint32_t sectorLength    = 1;
+                    for (;
+                         checkRepeatIter < defects->numberOfElements &&
+                         defects->physical[checkRepeatIter].cylinderNumber == defects->physical[iter].cylinderNumber &&
+                         defects->physical[checkRepeatIter].headNumber == defects->physical[iter].headNumber &&
+                         defects->physical[checkRepeatIter].sectorNumber == (defects->physical[iter].sectorNumber + 1);
+                         checkRepeatIter++)
                     {
-                        json_object_object_add(rangeObj, "Sector Length",
-                                               json_object_new_int(endSector - startSector + 1));
+                        sectorLength++;
+                        iter++;
                     }
-                    json_object_array_add(defectRanges, rangeObj);
 
-                    startCylinder = currCylinder;
-                    startHead     = currHead;
-                    startSector   = currSector;
-                    endSector     = currSector;
+                    // add sector length in node
+                    DECLARE_ZERO_INIT_ARRAY(char, sectorLengthValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                    snprintf_err_handle(sectorLengthValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                        sectorLength);
+                    json_object_object_add(defectEntry, "Sector Length", json_object_new_string(sectorLengthValue));
+
+                    // add this entry into list
+                    json_object_array_add(defectList, defectEntry);
+
+                    iter = checkRepeatIter - 1;
                 }
             }
+            break;
 
-            // Add the final range
-            json_object* rangeObj = json_object_new_object();
-            json_object_object_add(rangeObj, "Cylinder", json_object_new_int(startCylinder));
-            json_object_object_add(rangeObj, "Head", json_object_new_int(startHead));
-            json_object_object_add(rangeObj, "Start Sector",
-                                   startSector == MAX_28BIT ? json_object_new_string("Full Track")
-                                                            : json_object_new_int(startSector));
-            if (startSector != MAX_28BIT)
+            case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             {
-                json_object_object_add(rangeObj, "Sector Length", json_object_new_int(endSector - startSector + 1));
-            }
-            json_object_array_add(defectRanges, rangeObj);
-        }
-
-        json_object_object_add(scsiDefectJson, "Defect Ranges", defectRanges);
-        break;
-    }
-
-    case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
-    {
-        atleastOneStatisticsAvailable = true;
-        json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Physical Sector Format"));
-        json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(defects->numberOfElements));
-
-        json_object* defectRanges = json_object_new_array();
-
-        if (defects->numberOfElements > 0)
-        {
-            uint32_t startCylinder = defects->physical[0].cylinderNumber;
-            uint8_t  startHead     = defects->physical[0].headNumber;
-            uint32_t startSector   = defects->physical[0].sectorNumber;
-            uint32_t endSector     = startSector;
-
-            for (uint64_t iter = 1; iter < defects->numberOfElements; ++iter)
-            {
-                uint32_t currCylinder = defects->physical[iter].cylinderNumber;
-                uint8_t  currHead     = defects->physical[iter].headNumber;
-                uint32_t currSector   = defects->physical[iter].sectorNumber;
-
-                bool isSequential =
-                    (currCylinder == startCylinder) && (currHead == startHead) && (currSector == endSector + 1);
-
-                if (isSequential)
-                {
-                    endSector = currSector;
-                }
-                else
-                {
-                    json_object* rangeObj = json_object_new_object();
-                    json_object_object_add(rangeObj, "Cylinder", json_object_new_int(startCylinder));
-                    json_object_object_add(rangeObj, "Head", json_object_new_int(startHead));
-                    json_object_object_add(rangeObj, "Start Sector",
-                                           startSector == UINT32_MAX ? json_object_new_string("Full Track")
-                                                                     : json_object_new_int(startSector));
-                    if (startSector != UINT32_MAX)
-                    {
-                        json_object_object_add(rangeObj, "Sector Length",
-                                               json_object_new_int(endSector - startSector + 1));
-                    }
-                    json_object_array_add(defectRanges, rangeObj);
-
-                    startCylinder = currCylinder;
-                    startHead     = currHead;
-                    startSector   = currSector;
-                    endSector     = currSector;
-                }
-            }
-
-            // Add the final range
-            json_object* rangeObj = json_object_new_object();
-            json_object_object_add(rangeObj, "Cylinder", json_object_new_int(startCylinder));
-            json_object_object_add(rangeObj, "Head", json_object_new_int(startHead));
-            json_object_object_add(rangeObj, "Start Sector",
-                                   startSector == UINT32_MAX ? json_object_new_string("Full Track")
-                                                             : json_object_new_int(startSector));
-            if (startSector != UINT32_MAX)
-            {
-                json_object_object_add(rangeObj, "Sector Length", json_object_new_int(endSector - startSector + 1));
-            }
-            json_object_array_add(defectRanges, rangeObj);
-        }
-
-        json_object_object_add(scsiDefectJson, "Defect Ranges", defectRanges);
-        break;
-    }
-
-
-    case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
-    {
-        atleastOneStatisticsAvailable = true;
-        json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Extended Bytes From Index Format"));
-
-        if (defects->numberOfElements > UINT32_C(0))
-        {
-            json_object_object_add(scsiDefectJson, "Total Defects in List",
-                                   json_object_new_int(defects->numberOfElements));
-
-            json_object* defectList = json_object_new_array();
-            bool                multiBit   = false;
-
-            for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
-            {
-                struct json_object* defectEntry = json_object_new_object();
-
                 if (defects->bfi[iter].multiAddressDescriptorStart)
                 {
-                    multiBit = true;
-                    json_object_object_add(defectEntry, "Multi Descriptor Start", json_object_new_boolean(true));
-                }
-                else if (multiBit)
-                {
-                    json_object_object_add(defectEntry, "Multi Descriptor Continuation", json_object_new_boolean(true));
-                    multiBit = false;
-                }
+                    // create array that will hold individual defect entry for that span
+                    json_object* multipleSpanDefectList = json_object_new_array();
 
-                json_object_object_add(defectEntry, "Cylinder", json_object_new_int(defects->bfi[iter].cylinderNumber));
-                json_object_object_add(defectEntry, "Head", json_object_new_int(defects->bfi[iter].headNumber));
+                    // add first defect of multiple span in array
+                    json_object* firstDefectEntry = json_object_new_object();
 
-                if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
-                {
-                    json_object_object_add(defectEntry, "Bytes From Index", json_object_new_string("Full Track"));
+                    DECLARE_ZERO_INIT_ARRAY(char, cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                    snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                        defects->bfi[iter].cylinderNumber);
+                    json_object_object_add(firstDefectEntry, "Cylinder", json_object_new_string(cylinderValue));
+
+                    DECLARE_ZERO_INIT_ARRAY(char, headValue, MAX_UINT8_TO_DEC_STRING_LENGHT);
+                    snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                        defects->bfi[iter].headNumber);
+                    json_object_object_add(firstDefectEntry, "Head", json_object_new_string(headValue));
+
+                    DECLARE_ZERO_INIT_ARRAY(char, byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                    if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
+                    {
+                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
+                    }
+                    else
+                    {
+                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                            defects->bfi[iter].bytesFromIndex);
+                    }
+                    json_object_object_add(firstDefectEntry, "Bytes From Index",
+                                           json_object_new_string(byteIndexValue));
+
+                    // add this node into span array node
+                    json_object_array_add(multipleSpanDefectList, firstDefectEntry);
+
+                    // now loop through the list, until we reach at the end of the span
+                    uint32_t multiBitIter = iter + 1;
+                    for (; multiBitIter < defects->numberOfElements &&
+                           defects->bfi[multiBitIter].multiAddressDescriptorStart;
+                         ++multiBitIter)
+                    {
+                        // create defect node
+                        json_object* subsequentDefectEntry = json_object_new_object();
+
+                        snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                            defects->bfi[multiBitIter].cylinderNumber);
+                        json_object_object_add(subsequentDefectEntry, "Cylinder",
+                                               json_object_new_string(cylinderValue));
+
+                        snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                            defects->bfi[multiBitIter].headNumber);
+                        json_object_object_add(subsequentDefectEntry, "Head", json_object_new_string(headValue));
+
+                        if (defects->bfi[multiBitIter].bytesFromIndex == MAX_28BIT)
+                        {
+                            snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
+                        }
+                        else
+                        {
+                            snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                                defects->bfi[multiBitIter].bytesFromIndex);
+                        }
+                        json_object_object_add(subsequentDefectEntry, "Bytes From Index",
+                                               json_object_new_string(byteIndexValue));
+
+                        // add this node into span array node
+                        json_object_array_add(multipleSpanDefectList, subsequentDefectEntry);
+                    }
+
+                    // add array in the outer array list
+                    json_object_array_add(defectList, multipleSpanDefectList);
+
+                    iter = multiBitIter - 1;
                 }
                 else
                 {
-                    json_object_object_add(defectEntry, "Bytes From Index",
-                                           json_object_new_int(defects->bfi[iter].bytesFromIndex));
+                    // create defect node
+                    json_object* defectEntry = json_object_new_object();
+
+                    DECLARE_ZERO_INIT_ARRAY(char, cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                    snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                        defects->bfi[iter].cylinderNumber);
+                    json_object_object_add(defectEntry, "Cylinder", json_object_new_string(cylinderValue));
+
+                    DECLARE_ZERO_INIT_ARRAY(char, headValue, MAX_UINT8_TO_DEC_STRING_LENGHT);
+                    snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                        defects->bfi[iter].headNumber);
+                    json_object_object_add(defectEntry, "Head", json_object_new_string(headValue));
+
+                    DECLARE_ZERO_INIT_ARRAY(char, byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
+                    if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
+                    {
+                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
+                    }
+                    else
+                    {
+                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                            defects->bfi[iter].bytesFromIndex);
+                    }
+                    json_object_object_add(defectEntry, "Bytes From Index", json_object_new_string(byteIndexValue));
+
+                    // add this entry into list
+                    json_object_array_add(defectList, defectEntry);
                 }
-
-                json_object_array_add(defectList, defectEntry);
             }
+            break;
 
-            json_object_object_add(scsiDefectJson, "Defect Entries", defectList);
-        }
-        else
-        {
-            json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(0));
-            json_object_object_add(scsiDefectJson, "Defect Entries", json_object_new_array());
+            case AD_VENDOR_SPECIFIC:
+            case AD_RESERVED:
+            default:
+                json_object_array_add(defectList, json_object_new_string("Reserved"));
+                break;
+            }
         }
 
-        break;
+        // add array in root node
+        json_object_object_add(rootNode, "Defect Addresses", defectList);
     }
-    case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
+
+    // Convert JSON object to formatted string
+    const char* jstr =
+        json_object_to_json_string_ext(rootNode, JSON_C_TO_STRING_PRETTY | JSON_C_TO_STRING_NOSLASHESCAPE);
+
+    // copy the json output into string
+    if (asprintf(jsonFormat, "%s", jstr) < 0)
     {
-        atleastOneStatisticsAvailable = true;
-        json_object_object_add(scsiDefectJson, "Format", json_object_new_string("Bytes From Index Format"));
-
-        if (defects->numberOfElements > UINT32_C(0))
-        {
-            json_object_object_add(scsiDefectJson, "Total Defects in List",
-                                   json_object_new_int(defects->numberOfElements));
-
-            json_object* defectList = json_object_new_array();
-
-            for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
-            {
-                struct json_object* defectEntry = json_object_new_object();
-
-                json_object_object_add(defectEntry, "Cylinder", json_object_new_int(defects->bfi[iter].cylinderNumber));
-                json_object_object_add(defectEntry, "Head", json_object_new_int(defects->bfi[iter].headNumber));
-
-                if (defects->bfi[iter].bytesFromIndex == UINT32_MAX)
-                {
-                    json_object_object_add(defectEntry, "Bytes From Index", json_object_new_string("Full Track"));
-                }
-                else
-                {
-                    json_object_object_add(defectEntry, "Bytes From Index",
-                                           json_object_new_int(defects->bfi[iter].bytesFromIndex));
-                }
-
-                json_object_array_add(defectList, defectEntry);
-            }
-
-            json_object_object_add(scsiDefectJson, "Defect Entries", defectList);
-        }
-        else
-        {
-            json_object_object_add(scsiDefectJson, "Total Defects in List", json_object_new_int(0));
-            json_object_object_add(scsiDefectJson, "Defect Entries", json_object_new_array());
-        }
-
-        break;
+        return MEMORY_FAILURE;
     }
 
-    }
+    // Free the JSON object
+    json_object_put(rootNode);
 
-
-        const char* jstr =
-        json_object_to_json_string_ext(scsiDefectJson, JSON_C_TO_STRING_PRETTY | JSON_C_TO_STRING_NOSLASHESCAPE);
-
-
-                    if (atleastOneStatisticsAvailable)
-        {
-            ret = SUCCESS;
-
-            // copy the json output into string
-            if (asprintf(jsonFormat, "%s", jstr) < 0)
-            {
-                ret = MEMORY_FAILURE;
-            }
-        }
-        json_object_put(scsiDefectJson);
-    return ret;
+    return SUCCESS;
 }

@@ -13,9 +13,6 @@
 // \file farm_json.c
 // \brief This file defines types and functions related to the JSON-based output for FARM.
 
-#include <json.h>
-#include <json_object.h>
-
 #include "farm_json.h"
 #include "io_utils.h"
 #include "math_utils.h"
@@ -1401,7 +1398,11 @@ static void create_Node_For_FARM_Reliability_Statistics_Page(json_object*       
     }
 }
 
-eReturnValues create_JSON_Output_For_FARM(tDevice* device, farmLogData* farmdata, char** jsonFormat)
+eReturnValues create_JSON_Output_For_FARM(tDevice*     device,
+                                          farmLogData* farmdata,
+                                          const char*  utilityName,
+                                          const char*  buildVersion,
+                                          char**       jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1417,15 +1418,8 @@ eReturnValues create_JSON_Output_For_FARM(tDevice* device, farmLogData* farmdata
         if (rootNode == M_NULLPTR)
             return MEMORY_FAILURE;
 
-        // Add version information
-        json_object_object_add(rootNode, "FARM JSON Version", json_object_new_string(FARM_JSON_VERSION));
-
-        // Add general drive information
-        json_object_object_add(rootNode, "Model Name",
-                               json_object_new_string(device->drive_info.product_identification));
-        json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
-        json_object_object_add(rootNode, "Firmware Version",
-                               json_object_new_string(device->drive_info.product_revision));
+        create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "FARM", FARM_JSON_VERSION);
+        create_Node_For_Drive_Information(rootNode, device);
 
         // This is a very overly simple hack to detect interface.
         // It's a string set to "SAS" or "SATA" so this will work for now - TJE
