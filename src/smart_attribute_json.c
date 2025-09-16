@@ -58,10 +58,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
     // add the hex value
     DECLARE_ZERO_INIT_ARRAY(char, statusValue, MAX_UINT16_TO_HEX_STRING_LENGHT);
     snprintf_err_handle(statusValue, MAX_UINT16_TO_HEX_STRING_LENGHT, "0x%04" PRIX16 "", smartAnalyzedAttribute.status);
-    json_object_object_add(statusNode, "Status", json_object_new_string(statusValue));
+    json_object_object_add(statusNode, "Flags", json_object_new_string(statusValue));
     // now add each attribute type set for this
     json_object* attributeTypeNode = json_object_new_object();
-    json_object_object_add(attributeTypeNode, "Pre-fail/warranty",
+    json_object_object_add(attributeTypeNode, "Pre-fail",
                            smartAnalyzedAttribute.attributeType.preFailAttribute ? json_object_new_string("Yes")
                                                                                  : json_object_new_string("No"));
     json_object_object_add(attributeTypeNode, "Online Data Collection",
@@ -79,11 +79,11 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
     json_object_object_add(attributeTypeNode, "Self-Preserving",
                            smartAnalyzedAttribute.attributeType.selfPreserving ? json_object_new_string("Yes")
                                                                                : json_object_new_string("No"));
-    json_object_object_add(statusNode, "Attribute Type(s)", attributeTypeNode);
-    json_object_object_add(attributeNode, "Status Information", statusNode);
+    json_object_object_add(statusNode, "Flags Types", attributeTypeNode);
+    json_object_object_add(attributeNode, "Flags Information", statusNode);
 
-    // add current(nominal) value, worst value
-    json_object_object_add(attributeNode, "Current (Nominal) Value",
+    // add current value, worst value
+    json_object_object_add(attributeNode, "Current Value",
                            json_object_new_uint64(C_CAST(uint64_t, smartAnalyzedAttribute.nominal)));
     json_object_object_add(attributeNode, "Worst Ever Value",
                            json_object_new_uint64(C_CAST(uint64_t, smartAnalyzedAttribute.worstEver)));
@@ -114,9 +114,9 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
         // should never get here
         break;
     }
-    json_object_object_add(thresholdNode, "Current Fail Status",
+    json_object_object_add(thresholdNode, "Current Failure Status",
                            json_object_new_string(smartAnalyzedAttribute.thresholdInfo.currentFailStatusString));
-    json_object_object_add(thresholdNode, "Past Fail Status",
+    json_object_object_add(thresholdNode, "Past Failure Status",
                            json_object_new_string(smartAnalyzedAttribute.thresholdInfo.pastFailStatusString));
     json_object_object_add(attributeNode, "Threshold Information", thresholdNode);
 
@@ -161,10 +161,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             json_object_object_add(fieldNode, "value", json_object_new_string(fieldValue));
             safe_free(&unitString);
 
-            // create new node, name if Field#? and then add name-value pair in this node
+            // create new node, name if Field ? and then add name-value pair in this node
             json_object* field = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field # %" PRIu8, (fieldCount + 1));
+            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field %" PRIu8, (fieldCount + 1));
             json_object_object_add(field, fieldNodeName, fieldNode);
 
             // Add it into array
@@ -208,10 +208,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             }
             safe_free(&unitString);
 
-            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            // create new node, name if Analyzed Field ? and then add name-value pair in this node
             json_object* node = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field %" PRIu8,
                                 (analyzedFieldCount + 1));
             json_object_object_add(node, fieldNodeName, doubleTypeNode);
             analyzedFieldCount++;
@@ -247,10 +247,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             }
             safe_free(&unitString);
 
-            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            // create new node, name if Analyzed Field ? and then add name-value pair in this node
             json_object* node = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field %" PRIu8,
                                 (analyzedFieldCount + 1));
             json_object_object_add(node, fieldNodeName, int64TypeNode);
             analyzedFieldCount++;
@@ -267,10 +267,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             json_object_object_add(stringTypeNode, "value",
                                    json_object_new_string(smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValue));
 
-            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            // create new node, name if Analyzed Field ? and then add name-value pair in this node
             json_object* node = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field %" PRIu8,
                                 (analyzedFieldCount + 1));
             json_object_object_add(node, fieldNodeName, stringTypeNode);
             analyzedFieldCount++;
@@ -284,7 +284,7 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
     json_object_object_add(attributeNode, "Raw Data Information", rawDataNode);
 
     DECLARE_ZERO_INIT_ARRAY(char, attributeNodeName, MAX_ATTRIBUTE_NODE_NAME_LENGTH);
-    snprintf_err_handle(attributeNodeName, MAX_ATTRIBUTE_NODE_NAME_LENGTH, "Attribute # %" PRIu8,
+    snprintf_err_handle(attributeNodeName, MAX_ATTRIBUTE_NODE_NAME_LENGTH, "Attribute %" PRIu8,
                         smartAnalyzedAttribute.attributeNumber);
     json_object_object_add(rootObject, attributeNodeName, attributeNode);
 }
