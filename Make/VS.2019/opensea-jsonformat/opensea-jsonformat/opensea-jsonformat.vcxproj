@@ -72,6 +72,7 @@
     <ClInclude Include="..\..\..\..\include\farm_json.h" />
     <ClInclude Include="..\..\..\..\include\jsonformat_common.h" />
     <ClInclude Include="..\..\..\..\include\opensea_jsonformat_version.h" />
+    <ClInclude Include="..\..\..\..\include\scan_json.h" />
     <ClInclude Include="..\..\..\..\include\scsi_defect_list_json.h" />
     <ClInclude Include="..\..\..\..\include\smart_attribute_json.h" />
   </ItemGroup>
@@ -80,6 +81,7 @@
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c" />
     <ClCompile Include="..\..\..\..\src\farm_json.c" />
     <ClCompile Include="..\..\..\..\src\jsonformat_common.c" />
+    <ClCompile Include="..\..\..\..\src\scan_json.c" />
     <ClCompile Include="..\..\..\..\src\scsi_defect_list_json.c" />
     <ClCompile Include="..\..\..\..\src\smart_attribute_json.c" />
   </ItemGroup>
