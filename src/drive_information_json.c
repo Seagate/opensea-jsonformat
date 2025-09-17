@@ -62,9 +62,8 @@ void create_Time_String(char *timeString, uint8_t years, uint16_t days, uint8_t 
     }
 }
 
-eReturnValues create_JSON_Node_For_Parent_And_Child_Information(json_object* rootObject, ptrDriveInformation
-                                                                                    translatorDriveInfo,
-                                                           ptrDriveInformation driveInfo)
+eReturnValues create_JSON_Node_For_Parent_And_Child_Information(json_object* rootObject, ptrDriveInformation translatorDriveInfo,
+                                                                ptrDriveInformation driveInfo)
 {
     DISABLE_NONNULL_COMPARE
 
@@ -429,7 +428,8 @@ eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* root
 
     if (driveInfo->isWriteProtected)
     {
-        printf("\tMedium is write protected!\n");
+        //printf("\tMedium is write protected!\n");
+        json_object_object_add(rootObject, "Medium is write protected", json_object_new_string("true"));
     }
 
     // Form Factor
@@ -471,24 +471,26 @@ eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* root
     // Last DST information
     if (driveInfo->dstInfo.informationValid && driveInfo->powerOnMinutesValid)
     {
-        json_object* dstDataObj = json_object_new_object();
         if (driveInfo->powerOnMinutes - (driveInfo->dstInfo.powerOnHours * 60) != driveInfo->powerOnMinutes)
         {
+            json_object* dstDataObj = json_object_new_object();
             double timeSinceLastDST =
                 (C_CAST(double, driveInfo->powerOnMinutes) / 60.0) - C_CAST(double, driveInfo->dstInfo.powerOnHours);
             if (timeSinceLastDST >= 0)
             {
-                json_object_object_add(dstDataObj, "Time since last DST (hours)", json_object_new_double(timeSinceLastDST));
+                char timeLastDst[10];
+                snprintf(timeLastDst, sizeof(timeLastDst), "%0.02f", timeSinceLastDST);
+                json_object_object_add(dstDataObj, "Time since last DST (hours)", json_object_new_string(timeLastDst));
             }
             else
             {
                 json_object_object_add(dstDataObj, "Time since last DST (hours)", json_object_new_string("Indeterminate"));
             }
-            char statusResult[20];
+            char statusResult[10];
             snprintf(statusResult, sizeof(statusResult), "0x%" PRIX8, driveInfo->dstInfo.resultOrStatus);
             json_object_object_add(dstDataObj, "DST Status/Result", json_object_new_string(statusResult));
 
-            char testRun[20];
+            char testRun[10];
             snprintf(testRun, sizeof(testRun), "0x%" PRIX8, driveInfo->dstInfo.testNumber);
             json_object_object_add(dstDataObj, "DST Test Run", json_object_new_string(testRun));
 
@@ -499,13 +501,13 @@ eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* root
                 json_object_object_add(dstDataObj, "Error occurred at LBA",
                                        json_object_new_uint64(driveInfo->dstInfo.errorLBA));
             }
+            json_object_object_add(rootObject, "Last DST information", dstDataObj);
+            json_object_put(dstDataObj);
         }
         else
         {
-            json_object_object_add(dstDataObj, "Last DST information", json_object_new_string("DST has never been run"));
+            json_object_object_add(rootObject, "Last DST information", json_object_new_string("DST has never been run"));
         }
-        json_object_object_add(rootObject, "Last DST information", dstDataObj);
-        json_object_put(dstDataObj);
     }
     else
     {
@@ -812,7 +814,7 @@ eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* root
         metric_Unit_Convert(&totalBytesWritten, &unit);
         char bytesWritten[64];
         snprintf(bytesWritten, sizeof(bytesWritten), "%0.02f", totalBytesWritten);
-        json_object_object_add(rootObject, ("Total Bytes Read (%s)", unit), json_object_new_string(bytesWritten));
+        json_object_object_add(rootObject, ("Total Bytes Written (%s)", unit), json_object_new_string(bytesWritten));
     }
     else
     {
@@ -1146,9 +1148,461 @@ eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* root
     }
 }
 
-eReturnValues create_JSON_Node_For_NVMe_Device_Information(json_object* rootObject, ptrDriveInformationSAS_SATA driveInfo)
+eReturnValues create_JSON_Node_For_NVMe_Device_Information(json_object* rootObject, ptrDriveInformationNVMe driveInfo)
 {
+    json_object* nvmeInfoObject = json_object_new_object();
+    if (nvmeInfoObject == M_NULLPTR)
+        return MEMORY_FAILURE;
 
+    json_object_object_add(nvmeInfoObject, "Model Number",
+                           json_object_new_string(driveInfo->controllerData.modelNumber));
+    json_object_object_add(nvmeInfoObject, "Serial Number",
+                           json_object_new_string(driveInfo->controllerData.serialNumber));
+    json_object_object_add(nvmeInfoObject, "Firmware Revision",
+                           json_object_new_string(driveInfo->controllerData.firmwareRevision));
+
+    if (driveInfo->controllerData.ieeeOUI > 0)
+    {
+        char ieeeOUI[10];
+        snprintf(ieeeOUI, sizeof(ieeeOUI), "%06" PRIX32, driveInfo->controllerData.ieeeOUI);
+        json_object_object_add(nvmeInfoObject, "IEEE OUI", json_object_new_string(ieeeOUI));
+    }
+    else
+    {
+        json_object_object_add(nvmeInfoObject, "IEEE OUI", json_object_new_string("Not Supported"));
+    }
+
+    char pciVendorID[8];
+    snprintf(pciVendorID, sizeof(pciVendorID), "%04" PRIX16, driveInfo->controllerData.pciVendorID);
+    json_object_object_add(nvmeInfoObject, "PCI Vendor ID", json_object_new_string(pciVendorID));
+
+    char pciSubVendorID[8];
+    snprintf(pciSubVendorID, sizeof(pciSubVendorID), "%04" PRIX16, driveInfo->controllerData.pciSubsystemVendorID);
+    json_object_object_add(nvmeInfoObject, "PCI Subsystem Vendor ID", json_object_new_string(pciSubVendorID));
+
+    if (driveInfo->controllerData.controllerID > 0)
+    {
+        char controllerID[8];
+        snprintf(controllerID, sizeof(controllerID), "%04" PRIX16, driveInfo->controllerData.controllerID);
+        json_object_object_add(nvmeInfoObject, "Controller ID", json_object_new_string(controllerID));
+    }
+    else
+    {
+        json_object_object_add(nvmeInfoObject, "Controller ID", json_object_new_string("Not Supported"));
+    }
+
+    if (driveInfo->controllerData.majorVersion > 0 || driveInfo->controllerData.minorVersion > 0 ||
+        driveInfo->controllerData.tertiaryVersion > 0)
+    {
+        char nvmeVersion[15];
+        snprintf(nvmeVersion, sizeof(nvmeVersion), "%" PRIu16 ".%" PRIu8 ".%" PRIu8,
+                 driveInfo->controllerData.majorVersion, driveInfo->controllerData.minorVersion,
+                 driveInfo->controllerData.tertiaryVersion);
+        json_object_object_add(nvmeInfoObject, "NVMe Version", json_object_new_string(nvmeVersion));
+    }
+    else
+    {
+        json_object_object_add(nvmeInfoObject, "NVMe Version", json_object_new_string("Not reported (NVMe 1.1 or older)"));
+    }
+    if (driveInfo->controllerData.hostIdentifierSupported)
+    {
+        // TODO: Print out the host identifier
+    }
+
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, zero128Bit, 16);
+    if (memcmp(zero128Bit, driveInfo->controllerData.fguid, 16) != 0)
+    {
+        json_object* fguid = json_object_new_array();
+        for (uint8_t i = UINT8_C(0); i < 16; ++i)
+        {
+            char temp[4];
+            snprintf(temp, size(temp), "%02" PRIX8, driveInfo->controllerData.fguid[i]);
+            json_object_array_add(fguid, json_object_new_string(temp));
+        }
+        json_object_object_add(nvmeInfoObject, "FGUID", fguid);
+        json_object_put(fguid);
+    }
+    else
+    {
+        json_object_object_add(nvmeInfoObject, "FGUID", json_object_new_string("Not Supported"));
+    }
+    if (driveInfo->controllerData.totalNVMCapacityD > 0)
+    {
+        // convert this to an "easy" unit instead of tons and tons of bytes
+        DECLARE_ZERO_INIT_ARRAY(char, mTotalCapUnits, UNIT_STRING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, totalCapUnits, UNIT_STRING_LENGTH);
+        char * mTotalCapUnit = &mTotalCapUnits[0], *totalCapUnit = &totalCapUnits[0];
+        double mTotalCapacity = driveInfo->controllerData.totalNVMCapacityD;
+        double totalCapacity  = mTotalCapacity;
+        metric_Unit_Convert(&mTotalCapacity, &mTotalCapUnit);
+        capacity_Unit_Convert(&totalCapacity, &totalCapUnit);
+        char driveCapacity[64];
+        snprintf(driveCapacity, sizeof(driveCapacity), "%0.02f/%0.02f", mTotalCapacity, totalCapacity);
+        json_object_object_add(nvmeInfoObject, ("Total NVM Capacity (%s/%s)", mTotalCapUnit, totalCapUnit),
+                               json_object_new_string(driveCapacity));
+
+        if (driveInfo->controllerData.unallocatedNVMCapacityD > 0)
+        {
+            DECLARE_ZERO_INIT_ARRAY(char, mUnCapUnits, UNIT_STRING_LENGTH);
+            DECLARE_ZERO_INIT_ARRAY(char, unCapUnits, UNIT_STRING_LENGTH);
+            char * mUnCapUnit = &mUnCapUnits[0], *unCapUnit = &unCapUnits[0];
+            double mUnCapacity = driveInfo->controllerData.unallocatedNVMCapacityD;
+            double unCapacity  = mUnCapacity;
+            metric_Unit_Convert(&mUnCapacity, &mUnCapUnit);
+            capacity_Unit_Convert(&unCapacity, &unCapUnit);
+
+            char unNVMCapacity[64];
+            snprintf(unNVMCapacity, sizeof(unNVMCapacity), "%0.02f/%0.02f", mUnCapacity, unCapacity);
+            json_object_object_add(nvmeInfoObject, ("Unallocated NVM Capacity (%s/%s)", mUnCapUnit, unCapUnit),
+                                   json_object_new_string(unNVMCapacity));
+        }
+    }
+
+    if (driveInfo->controllerData.volatileWriteCacheSupported)
+    {
+        json_object_object_add(
+            nvmeInfoObject, "Write Cache",
+            json_object_new_string(driveInfo->controllerData.volatileWriteCacheEnabled ? "Enabled" : "Disabled"));
+    }
+    else
+    {
+        json_object_object_add(nvmeInfoObject, "Write Cache", json_object_new_string("Not Supported"));
+    }
+    json_object_object_add(nvmeInfoObject, "Maximum Number Of Namespaces", 
+            json_object_new_int(driveInfo->controllerData.maxNumberOfNamespaces));
+
+    json_object_object_add(nvmeInfoObject, "Number of supported power states",
+                           json_object_new_int(driveInfo->controllerData.numberOfPowerStatesSupported + 1));
+    // Putting SMART & DST data here so that it isn't confused with the namespace data below - TJE
+    if (driveInfo->smartData.valid)
+    {
+        json_object_object_add(nvmeInfoObject, "Read-Only Medium",
+                               json_object_new_boolean(driveInfo->smartData.mediumIsReadOnly));
+
+        switch (driveInfo->smartData.smartStatus)
+        {
+        case 0:
+            json_object_object_add(nvmeInfoObject, "SMART Status", json_object_new_string("Good"));
+            break;
+        case 1:
+            json_object_object_add(nvmeInfoObject, "SMART Status", json_object_new_string("Bad"));
+            break;
+        case 2:
+        default:
+            json_object_object_add(nvmeInfoObject, "SMART Status", json_object_new_string("Unknown"));
+            break;
+        }
+        // kelvin_To_Celsius(&driveInfo->smartData.compositeTemperatureKelvin);
+
+        json_object_object_add(nvmeInfoObject, "Composite Temperature (K)",
+                               json_object_new_int(driveInfo->smartData.compositeTemperatureKelvin));
+        json_object_object_add(nvmeInfoObject, "Percent Used (%%)",
+                               json_object_new_int(driveInfo->smartData.percentageUsed));
+        json_object_object_add(nvmeInfoObject, "Available Spare (%%)",
+                               json_object_new_int(driveInfo->smartData.availableSpacePercent));
+        uint16_t days    = UINT16_C(0);
+        uint8_t  years   = UINT8_C(0);
+        uint8_t  hours   = UINT8_C(0);
+        uint8_t  minutes = UINT8_C(0);
+        uint8_t  seconds = UINT8_C(0);
+        convert_Seconds_To_Displayable_Time_Double(driveInfo->smartData.powerOnHoursD * 3600.0, &years, &days, &hours,
+                                                   &minutes, &seconds);
+        char timeString[256] = {0};
+        // Append each time component to the string if it's greater than 0
+        create_Time_String(&timeString, &years, &days, &hours, &minutes, &seconds);
+        json_object_object_add(nvmeInfoObject, "Power On Time", json_object_new_string(timeString));
+
+        char poh[64];
+        snprintf(poh, sizeof(poh), "%0.00f", driveInfo->smartData.powerOnHoursD);
+        json_object_object_add(nvmeInfoObject, "Power On Hours (hours)", json_object_new_string(poh));
+
+        // Last DST information
+        if (driveInfo->dstInfo.informationValid)
+        {
+            if (driveInfo->smartData.powerOnHoursD - C_CAST(double, (driveInfo->dstInfo.powerOnHours)) <
+                driveInfo->smartData.powerOnHoursD)
+            {
+                json_object* dstDataObj       = json_object_new_object();
+
+                double timeSinceLastDST = C_CAST(double, driveInfo->smartData.powerOnHoursD) -
+                                          C_CAST(double, driveInfo->dstInfo.powerOnHours);
+                if (timeSinceLastDST >= 0)
+                {
+                    char timeLastDst[10];
+                    snprintf(timeLastDst, sizeof(timeLastDst), "%0.02f", timeSinceLastDST);
+                    json_object_object_add(dstDataObj, "Time since last DST (hours)",
+                                           json_object_new_string(timeLastDst));
+                }
+                else
+                {
+                    json_object_object_add(dstDataObj, "Time since last DST (hours)",
+                                           json_object_new_string("Indeterminate"));
+                }
+                char statusResult[10];
+                snprintf(statusResult, sizeof(statusResult), "0x%" PRIX8, driveInfo->dstInfo.resultOrStatus);
+                json_object_object_add(dstDataObj, "DST Status/Result", json_object_new_string(statusResult));
+
+                char testRun[10];
+                snprintf(testRun, sizeof(testRun), "0x%" PRIX8, driveInfo->dstInfo.testNumber);
+                json_object_object_add(dstDataObj, "DST Test Run", json_object_new_string(testRun));
+
+                if (driveInfo->dstInfo.resultOrStatus != 0 && driveInfo->dstInfo.resultOrStatus != 0xF &&
+                    driveInfo->dstInfo.errorLBA != UINT64_MAX)
+                {
+                    // Show the Error LBA
+                    json_object_object_add(dstDataObj, "Error occurred at LBA",
+                                           json_object_new_uint64(driveInfo->dstInfo.errorLBA));
+                }
+                json_object_object_add(nvmeInfoObject, "Last DST information", dstDataObj);
+                json_object_put(dstDataObj);
+            }
+            else
+            {
+                json_object_object_add(nvmeInfoObject, "Last DST information", json_object_new_string("DST has never been run"));
+            }
+        }
+        else
+        {
+            json_object_object_add(nvmeInfoObject, "Last DST information", json_object_new_string("Not supported"));
+        }
+        // Long DST time
+        if (driveInfo->controllerData.longDSTTimeMinutes > UINT64_C(0))
+        {
+            // print as hours:minutes
+            years   = UINT8_C(0);
+            days    = UINT16_C(0);
+            hours   = UINT8_C(0);
+            minutes = UINT8_C(0);
+            seconds = UINT8_C(0);
+            convert_Seconds_To_Displayable_Time(driveInfo->controllerData.longDSTTimeMinutes * UINT64_C(60), &years,
+                                                &days, &hours, &minutes, &seconds);
+            char timeString[256] = {0};
+            // Append each time component to the string if it's greater than 0
+            create_Time_String(&timeString, &years, &days, &hours, &minutes, &seconds);
+            json_object_object_add(nvmeInfoObject, "Long Drive Self Test Time", json_object_new_string(timeString));
+        }
+        else
+        {
+            json_object_object_add(nvmeInfoObject, "Long Drive Self Test Time", json_object_new_string("Not Supported"));
+        }
+
+        // Workload Rate (Annualized)
+        printf("\tAnnualized Workload Rate (TB/yr): ");
+#ifndef MINUTES_IN_1_YEAR
+#    define MINUTES_IN_1_YEAR 525600.0
+#endif // !MINUTES_IN_1_YEAR
+        double totalTerabytesRead    = (driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0) / 1000000000000.0;
+        double totalTerabytesWritten = (driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0) / 1000000000000.0;
+        double calculatedUsage       = C_CAST(double, totalTerabytesRead + totalTerabytesWritten) *
+                                 C_CAST(double, MINUTES_IN_1_YEAR / (driveInfo->smartData.powerOnHoursD * 60.0));
+        char usage[64];
+        snprintf(usage, sizeof(usage), "%0.02f", calculatedUsage);
+        json_object_object_add(nvmeInfoObject, "Annualized Workload Rate (TB/yr)", json_object_new_string(usage));
+
+        // Total Bytes Read
+        double totalBytesRead = driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0;
+        DECLARE_ZERO_INIT_ARRAY(char, unitReadString, UNIT_STRING_LENGTH);
+        char* unitRead = &unitReadString[0];
+        metric_Unit_Convert(&totalBytesRead, &unitRead);
+        char bytesRead[64];
+        snprintf(bytesRead, sizeof(bytesRead), "%0.02f", totalBytesRead);
+        json_object_object_add(nvmeInfoObject, ("Total Bytes Read (%s)", unitRead), json_object_new_string(bytesRead));
+
+        // Total Bytes Written
+        double totalBytesWritten = driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0;
+        DECLARE_ZERO_INIT_ARRAY(char, unitWrittenString, UNIT_STRING_LENGTH);
+        char* unitWritten = &unitWrittenString[0];
+        metric_Unit_Convert(&totalBytesWritten, &unitWritten);
+        char bytesWritten[64];
+        snprintf(bytesWritten, sizeof(bytesWritten), "%0.02f", totalBytesWritten);
+        json_object_object_add(nvmeInfoObject, ("Total Bytes Written (%s)", unitWritten),
+                               json_object_new_string(bytesWritten));
+
+    }
+
+    // Encryption Support
+    switch (driveInfo->controllerData.encryptionSupport)
+    {
+    case ENCRYPTION_SELF_ENCRYPTING:
+        json_object_object_add(nvmeInfoObject, "Encryption Support", json_object_new_string("Self Encrypting"));
+        /*if (driveInfo->trustedCommandsBeingBlocked)
+        {
+            printf("\t\tWARNING: OS is blocking TCG commands over passthrough. Please enable it before running any TCG
+        commands\n");
+        }*/
+        break;
+    case ENCRYPTION_FULL_DISK:
+        json_object_object_add(nvmeInfoObject, "Encryption Support", json_object_new_string("Full Disk Encryption"));
+        break;
+    case ENCRYPTION_NONE:
+    default:
+        json_object_object_add(nvmeInfoObject, "Encryption Support", json_object_new_string("Not Supported"));
+        break;
+    }
+    // number of firmware slots
+    json_object_object_add(nvmeInfoObject, "Number of Firmware Slots",
+                           json_object_new_int(driveInfo->controllerData.numberOfFirmwareSlots));
+    // Print out Controller features! (admin commands, etc)
+
+    json_object* controllerFeature = json_object_new_array();
+
+    for (uint16_t featureIter = UINT16_C(0); featureIter < driveInfo->controllerData.numberOfControllerFeatures;
+         ++featureIter)
+    {
+        json_object_array_add(
+            controllerFeature,
+            json_object_new_string(driveInfo->controllerData.controllerFeaturesSupported[featureIter]));
+    }
+    json_object_object_add(nvmeInfoObject, "Controller Features", controllerFeature);
+    json_object_put(controllerFeature);
+
+    if (driveInfo->namespaceData.valid)
+    {
+        json_object* namespaceObj = json_object_new_object();
+        // Namespace size
+        DECLARE_ZERO_INIT_ARRAY(char, mSizeUnits, UNIT_STRING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, sizeUnits, UNIT_STRING_LENGTH);
+        char*  mSizeUnit = &mSizeUnits[0];
+        char*  sizeUnit  = &sizeUnits[0];
+        double nvmMSize =
+            C_CAST(double, driveInfo->namespaceData.namespaceSize * driveInfo->namespaceData.formattedLBASizeBytes);
+        double nvmSize = nvmMSize;
+        metric_Unit_Convert(&nvmMSize, &mSizeUnit);
+        capacity_Unit_Convert(&nvmSize, &sizeUnit);
+
+        char namespaceSize[64];
+        snprintf(namespaceSize, sizeof(namespaceSize), "%0.02f/%0.02f", nvmMSize, nvmMSize);
+        json_object_object_add(namespaceObj, ("Namespace Size (%s/%s)", mSizeUnit, sizeUnit),
+                               json_object_new_string(namespaceSize));
+
+        json_object_object_add(namespaceObj, "Namespace Size (LBAs)",
+                               json_object_new_uint64(driveInfo->namespaceData.namespaceSize));
+        // namespace capacity
+        DECLARE_ZERO_INIT_ARRAY(char, mCapUnits, UNIT_STRING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, capUnits, UNIT_STRING_LENGTH);
+        char*  mCapUnit = &mCapUnits[0];
+        char*  capUnit  = &capUnits[0];
+        double nvmMCap =
+            C_CAST(double, driveInfo->namespaceData.namespaceCapacity * driveInfo->namespaceData.formattedLBASizeBytes);
+        double nvmCap = nvmMCap;
+        metric_Unit_Convert(&nvmMCap, &mCapUnit);
+        capacity_Unit_Convert(&nvmCap, &capUnit);
+
+        char namespaceCapacity[64];
+        snprintf(namespaceCapacity, sizeof(namespaceCapacity), "%0.02f/%0.02f", nvmMCap, nvmMCap);
+        json_object_object_add(namespaceObj, ("Namespace Capacity (%s/%s)", mCapUnit, capUnit),
+                               json_object_new_string(namespaceCapacity));
+        json_object_object_add(namespaceObj, "Namespace Capacity (LBAs)",
+                               json_object_new_uint64(driveInfo->namespaceData.namespaceCapacity));
+
+        // namespace utilization
+        DECLARE_ZERO_INIT_ARRAY(char, mUtilizationUnits, UNIT_STRING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, utilizationUnits, UNIT_STRING_LENGTH);
+        char*  mUtilizationUnit = &mUtilizationUnits[0];
+        char*  utilizationUnit  = &utilizationUnits[0];
+        double nvmMUtilization  = C_CAST(double, driveInfo->namespaceData.namespaceUtilization *
+                                                    driveInfo->namespaceData.formattedLBASizeBytes);
+        double nvmUtilization   = nvmMUtilization;
+        metric_Unit_Convert(&nvmMUtilization, &mUtilizationUnit);
+        capacity_Unit_Convert(&nvmUtilization, &utilizationUnit);
+
+        char utilization[64];
+        snprintf(utilization, sizeof(utilization), "%0.02f/%0.02f", nvmMUtilization, nvmMUtilization);
+        json_object_object_add(namespaceObj, ("Namespace Utilization (%s/%s)", mUtilizationUnit, utilizationUnit),
+                               json_object_new_string(utilization));
+        json_object_object_add(namespaceObj, "Namespace Utilization (LBAs)",
+                               json_object_new_uint64(driveInfo->namespaceData.namespaceUtilization));
+
+
+        // Formatted LBA Size
+        json_object_object_add(namespaceObj, "Logical Block Size (B)",
+                               json_object_new_int(driveInfo->namespaceData.formattedLBASizeBytes));
+
+        // relative performance
+        switch (driveInfo->namespaceData.relativeFormatPerformance)
+        {
+        case 0:
+            json_object_object_add(namespaceObj, "Logical Block Size Relative Performance",
+                                   json_object_new_string("Best Performance"));
+            break;
+        case 1:
+            json_object_object_add(namespaceObj, "Logical Block Size Relative Performance",
+                                   json_object_new_string("Better Performance"));
+            break;
+        case 2:
+            json_object_object_add(namespaceObj, "Logical Block Size Relative Performance",
+                                   json_object_new_string("Good Performance"));
+            break;
+        case 3:
+            json_object_object_add(namespaceObj, "Logical Block Size Relative Performance",
+                                   json_object_new_string("Degraded Performance"));
+            break;
+        default: // this case shouldn't ever happen...just reducing a warning - TJE
+            json_object_object_add(namespaceObj, "Logical Block Size Relative Performance",
+                                   json_object_new_string("Unknown Performance"));
+            break;
+        }
+        if (driveInfo->namespaceData.nvmCapacityD > 0)
+        {
+            safe_memset(mCapUnits, UNIT_STRING_LENGTH, 0, UNIT_STRING_LENGTH * sizeof(char));
+            safe_memset(capUnits, UNIT_STRING_LENGTH, 0, UNIT_STRING_LENGTH * sizeof(char));
+            double mCapacity = driveInfo->namespaceData.nvmCapacityD;
+            double capacity  = mCapacity;
+            metric_Unit_Convert(&mCapacity, &mCapUnit);
+            capacity_Unit_Convert(&capacity, &capUnit);
+            char cap[64];
+            snprintf(cap, sizeof(cap), "%0.02f/%0.02f", mCapacity, capacity);
+            json_object_object_add(namespaceObj, ("NVM Capacity (%s/%s)", mCapUnit, capUnit),
+                                   json_object_new_string(cap));
+        }
+
+        if (memcmp(zero128Bit, driveInfo->namespaceData.namespaceGloballyUniqueIdentifier, 16) != 0)
+        {
+            json_object* nguid = json_object_new_array();
+            for (uint8_t i = UINT8_C(0); i < 16; ++i)
+            {
+                char temp[6];
+                snprintf(temp, size(temp), "%02" PRIX8, driveInfo->controllerData.fguid[i]);
+                json_object_array_add(nguid, json_object_new_string(temp));
+            }
+            json_object_object_add(namespaceObj, "NGUID", nguid);
+            json_object_put(nguid);
+        }
+        else
+        {
+            json_object_object_add(namespaceObj, "NGUID", json_object_new_string("Not Supported"));
+        }
+
+        if (driveInfo->namespaceData.ieeeExtendedUniqueIdentifier != 0)
+        {
+            char temp[20];
+            snprintf(temp, size(temp), "%016" PRIX64 "\n", driveInfo->namespaceData.ieeeExtendedUniqueIdentifier);
+            json_object_object_add(namespaceObj, "EUI64", json_object_new_string("Not Supported"));
+        }
+        else
+        {
+            json_object_object_add(namespaceObj, "EUI64", json_object_new_string("Not Supported"));
+        }
+        // Namespace features.
+        json_object* features = json_object_new_array();
+        for (uint16_t featureIter = UINT16_C(0); featureIter < driveInfo->namespaceData.numberOfNamespaceFeatures;
+             ++featureIter)
+        {
+            json_object_array_add(
+                features, json_object_new_string(driveInfo->namespaceData.namespaceFeaturesSupported[featureIter]));
+        }
+        json_object_object_add(namespaceObj, "Namespace Features", features);
+        json_object_put(features);
+
+        json_object_object_add(nvmeInfoObject, "NVMe Namespace Information", namespaceObj);
+        json_object_put(namespaceObj);
+    }
+    else
+    {
+        json_object_object_add(nvmeInfoObject, "NVMe Namespace Information", json_object_new_string("ERROR: Could not get namespace data!"));
+    }
+    json_object_object_add(rootObject, "NVMe Controller Information", nvmeInfoObject);
+    json_object_put(nvmeInfoObject);
 }
 
 eReturnValues create_JSON_For_Device_Information(json_object* rootObject, ptrDriveInformation driveInfo)
@@ -1167,7 +1621,6 @@ eReturnValues create_JSON_For_Device_Information(json_object* rootObject, ptrDri
     }
     return ret;
 }
-
 
 eReturnValues create_JSON_Output_For_Drive_Information(tDevice* device, bool showChildInformation, char** jsonFormat)
 {
