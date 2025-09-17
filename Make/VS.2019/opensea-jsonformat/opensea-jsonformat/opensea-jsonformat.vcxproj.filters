@@ -53,6 +53,9 @@
     <ClCompile Include="..\..\..\..\src\farm_json.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\jsonformat_common.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\scsi_defect_list_json.c">
       <Filter>Source Files</Filter>
     </ClCompile>

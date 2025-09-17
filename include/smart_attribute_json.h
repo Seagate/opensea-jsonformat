@@ -15,19 +15,22 @@
 
 #pragma once
 
-#include "common_public.h"
-#include "common_types.h"
 #include "jsonformat_common.h"
-#include "seagate_operations.h"
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_WO(2)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice* device, char** jsonFormat);
+    M_NONNULL_PARAM_LIST(1, 2, 3)
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    M_PARAM_RO(3)
+    M_PARAM_WO(4)
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice*    device,
+                                                                                 const char* utilityName,
+                                                                                 const char* buildVersion,
+                                                                                 char**      jsonFormat);
 
 #if defined(__cplusplus)
 }

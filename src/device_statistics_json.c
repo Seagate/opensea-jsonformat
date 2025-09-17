@@ -13,9 +13,6 @@
 // \file device_statistics_json.c
 // \brief This file defines types and functions related to the JSON-based output for Device Statistics log.
 
-#include <json.h>
-#include <json_object.h>
-
 #include "device_statistics_json.h"
 #include "io_utils.h"
 #include "time_utils.h"
@@ -464,8 +461,10 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
 static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(tDevice*                   device,
                                                                   ptrDeviceStatistics        deviceStatictics,
                                                                   ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                                  bool   seagateDeviceStatisticsAvailable,
-                                                                  char** jsonFormat)
+                                                                  bool        seagateDeviceStatisticsAvailable,
+                                                                  const char* utilityName,
+                                                                  const char* buildVersion,
+                                                                  char**      jsonFormat)
 {
     eReturnValues ret                           = NOT_SUPPORTED;
     bool          atleastOneStatisticsAvailable = false;
@@ -480,14 +479,9 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(tDevice*      
     if (rootNode == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    // Add version information
-    json_object_object_add(rootNode, "Device Statistics JSON Version",
-                           json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
-
-    // Add general drive information
-    json_object_object_add(rootNode, "Model Name", json_object_new_string(device->drive_info.product_identification));
-    json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
-    json_object_object_add(rootNode, "Firmware Version", json_object_new_string(device->drive_info.product_revision));
+    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
+                                    DEVICE_STATISTICS_JSON_VERSION);
+    create_Node_For_Drive_Information(rootNode, device);
 
     if (deviceStatictics->sataStatistics.generalStatisticsSupported)
     {
@@ -970,8 +964,10 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(tDevice*      
 static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(tDevice*                   device,
                                                                    ptrDeviceStatistics        deviceStatictics,
                                                                    ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                                   bool   seagateDeviceStatisticsAvailable,
-                                                                   char** jsonFormat)
+                                                                   bool        seagateDeviceStatisticsAvailable,
+                                                                   const char* utilityName,
+                                                                   const char* buildVersion,
+                                                                   char**      jsonFormat)
 {
     eReturnValues ret                           = NOT_SUPPORTED;
     bool          atleastOneStatisticsAvailable = false;
@@ -986,14 +982,9 @@ static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(tDevice*     
     if (rootNode == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    // Add version information
-    json_object_object_add(rootNode, "Device Statistics JSON Version",
-                           json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
-
-    // Add general drive information
-    json_object_object_add(rootNode, "Model Name", json_object_new_string(device->drive_info.product_identification));
-    json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
-    json_object_object_add(rootNode, "Firmware Version", json_object_new_string(device->drive_info.product_revision));
+    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
+                                    DEVICE_STATISTICS_JSON_VERSION);
+    create_Node_For_Drive_Information(rootNode, device);
 
     if (deviceStatictics->sasStatistics.writeErrorCountersSupported)
     {
@@ -1711,6 +1702,8 @@ eReturnValues create_JSON_Output_For_Device_Statistics(tDevice*                 
                                                        ptrDeviceStatistics        deviceStatictics,
                                                        ptrSeagateDeviceStatistics seagateDeviceStatistics,
                                                        bool                       seagateDeviceStatisticsAvailable,
+                                                       const char*                utilityName,
+                                                       const char*                buildVersion,
                                                        char**                     jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -1723,12 +1716,14 @@ eReturnValues create_JSON_Output_For_Device_Statistics(tDevice*                 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = create_JSON_Output_For_ATA_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
-                                                           seagateDeviceStatisticsAvailable, jsonFormat);
+                                                           seagateDeviceStatisticsAvailable, utilityName, buildVersion,
+                                                           jsonFormat);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = create_JSON_Output_For_SCSI_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
-                                                            seagateDeviceStatisticsAvailable, jsonFormat);
+                                                            seagateDeviceStatisticsAvailable, utilityName, buildVersion,
+                                                            jsonFormat);
     }
 
     return ret;

@@ -15,8 +15,6 @@
 
 #pragma once
 
-#include "common_public.h"
-#include "common_types.h"
 #include "device_statistics.h"
 #include "jsonformat_common.h"
 #include "seagate_operations.h"
@@ -26,16 +24,20 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 2)
+    M_NONNULL_PARAM_LIST(1, 2, 5, 6)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(3)
-    M_PARAM_WO(5)
+    M_PARAM_RO(5)
+    M_PARAM_RO(6)
+    M_PARAM_WO(7)
     OPENSEA_JSONFORMAT_API eReturnValues
     create_JSON_Output_For_Device_Statistics(tDevice*                   device,
                                              ptrDeviceStatistics        deviceStatictics,
                                              ptrSeagateDeviceStatistics seagateDeviceStatistics,
                                              bool                       seagateDeviceStatisticsAvailable,
+                                             const char*                utilityName,
+                                             const char*                buildVersion,
                                              char**                     jsonFormat);
 
 #if defined(__cplusplus)

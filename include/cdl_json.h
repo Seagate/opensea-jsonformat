@@ -16,8 +16,6 @@
 #pragma once
 
 #include "cdl.h"
-#include "common_public.h"
-#include "common_types.h"
 #include "jsonformat_common.h"
 
 #if defined(__cplusplus)

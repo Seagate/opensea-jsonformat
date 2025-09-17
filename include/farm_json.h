@@ -15,8 +15,6 @@
 
 #pragma once
 
-#include "common_public.h"
-#include "common_types.h"
 #include "farm_log.h"
 #include "jsonformat_common.h"
 
@@ -25,10 +23,16 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_WO(2)
+    M_NONNULL_PARAM_LIST(1, 2, 3, 4)
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    M_PARAM_RO(3)
+    M_PARAM_RO(4)
+    M_PARAM_WO(5)
     OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_FARM(tDevice*     device,
                                                                      farmLogData* farmdata,
+                                                                     const char*  utilityName,
+                                                                     const char*  buildVersion,
                                                                      char**       jsonFormat);
 
 #if defined(__cplusplus)

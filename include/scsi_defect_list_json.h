@@ -11,28 +11,29 @@
 // ******************************************************************************************
 //
 // \file device_statistics_json.h
-// \brief This file defines types and functions related to the JSON-based outptu for Device Statistics log.
+// \brief This file defines types and functions related to the JSON-based outptu for SCSI Defect log.
 
 #pragma once
 
-#include "common_public.h"
-#include "common_types.h"
-#include "device_statistics.h"
 #include "defect.h"
 #include "jsonformat_common.h"
-#include "seagate_operations.h"
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
 
-M_NONNULL_PARAM_LIST(1, 2)
+    M_NONNULL_PARAM_LIST(1, 2, 3, 4)
     M_PARAM_RO(1)
-    M_PARAM_RW(2)
-
-    OPENSEA_OPERATIONS_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(ptrSCSIDefectList defects,
-                                                                                 char**           jsonFormat);
+    M_PARAM_RO(2)
+    M_PARAM_RO(3)
+    M_PARAM_RO(4)
+    M_PARAM_WO(5)
+    OPENSEA_OPERATIONS_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(tDevice*          device,
+                                                                                 ptrSCSIDefectList defects,
+                                                                                 const char*       utilityName,
+                                                                                 const char*       buildVersion,
+                                                                                 char**            jsonFormat);
 
 #if defined(__cplusplus)
 }

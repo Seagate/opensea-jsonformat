@@ -13,12 +13,9 @@
 // \file smart_attribute_json.c
 // \brief This file defines types and functions related to the JSON-based output for SMART Attributes.
 
-#include <json.h>
-#include <json_object.h>
-
+#include "smart_attribute_json.h"
 #include "io_utils.h"
 #include "smart.h"
-#include "smart_attribute_json.h"
 #include "string_utils.h"
 
 #define COMBINE_SMART_ATTRIBUTE_JSON_VERSIONS_(x, y, z) #x "." #y "." #z
@@ -61,40 +58,32 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
     // add the hex value
     DECLARE_ZERO_INIT_ARRAY(char, statusValue, MAX_UINT16_TO_HEX_STRING_LENGHT);
     snprintf_err_handle(statusValue, MAX_UINT16_TO_HEX_STRING_LENGHT, "0x%04" PRIX16 "", smartAnalyzedAttribute.status);
-    json_object_object_add(statusNode, "Status", json_object_new_string(statusValue));
+    json_object_object_add(statusNode, "Flags", json_object_new_string(statusValue));
     // now add each attribute type set for this
-    json_object* jarray = json_object_new_array();
-    if (smartAnalyzedAttribute.attributeType.preFailAttribute)
-    {
-        json_object_array_add(
-            jarray, json_object_new_string("Pre-fail/warranty. Indicates a cause of known impending failure."));
-    }
-    if (smartAnalyzedAttribute.attributeType.onlineDataCollection)
-    {
-        json_object_array_add(jarray, json_object_new_string("Online Data Collection. Updates as the drive runs."));
-    }
-    if (smartAnalyzedAttribute.attributeType.performanceIndicator)
-    {
-        json_object_array_add(
-            jarray, json_object_new_string("Performance. Degredation of this attribute will affect performance."));
-    }
-    if (smartAnalyzedAttribute.attributeType.errorRateIndicator)
-    {
-        json_object_array_add(jarray, json_object_new_string("Error Rate. Attribute tracks and error rate."));
-    }
-    if (smartAnalyzedAttribute.attributeType.eventCounter)
-    {
-        json_object_array_add(jarray, json_object_new_string("Event Count. Attribute is a counter."));
-    }
-    if (smartAnalyzedAttribute.attributeType.selfPreserving)
-    {
-        json_object_array_add(jarray, json_object_new_string("Self-Preserving. Saves between power cycles."));
-    }
-    json_object_object_add(statusNode, "Attribute Type(s)", jarray);
-    json_object_object_add(attributeNode, "Status Information", statusNode);
+    json_object* attributeTypeNode = json_object_new_object();
+    json_object_object_add(attributeTypeNode, "Pre-fail",
+                           smartAnalyzedAttribute.attributeType.preFailAttribute ? json_object_new_string("Yes")
+                                                                                 : json_object_new_string("No"));
+    json_object_object_add(attributeTypeNode, "Online Data Collection",
+                           smartAnalyzedAttribute.attributeType.onlineDataCollection ? json_object_new_string("Yes")
+                                                                                     : json_object_new_string("No"));
+    json_object_object_add(attributeTypeNode, "Performance degrades as current value decreases",
+                           smartAnalyzedAttribute.attributeType.performanceIndicator ? json_object_new_string("Yes")
+                                                                                     : json_object_new_string("No"));
+    json_object_object_add(attributeTypeNode, "Error Rate",
+                           smartAnalyzedAttribute.attributeType.errorRateIndicator ? json_object_new_string("Yes")
+                                                                                   : json_object_new_string("No"));
+    json_object_object_add(attributeTypeNode, "Event Count",
+                           smartAnalyzedAttribute.attributeType.eventCounter ? json_object_new_string("Yes")
+                                                                             : json_object_new_string("No"));
+    json_object_object_add(attributeTypeNode, "Self-Preserving",
+                           smartAnalyzedAttribute.attributeType.selfPreserving ? json_object_new_string("Yes")
+                                                                               : json_object_new_string("No"));
+    json_object_object_add(statusNode, "Flags Types", attributeTypeNode);
+    json_object_object_add(attributeNode, "Flags Information", statusNode);
 
-    // add current(nominal) value, worst value
-    json_object_object_add(attributeNode, "Current (Nominal) Value",
+    // add current value, worst value
+    json_object_object_add(attributeNode, "Current Value",
                            json_object_new_uint64(C_CAST(uint64_t, smartAnalyzedAttribute.nominal)));
     json_object_object_add(attributeNode, "Worst Ever Value",
                            json_object_new_uint64(C_CAST(uint64_t, smartAnalyzedAttribute.worstEver)));
@@ -118,11 +107,6 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
         snprintf_err_handle(thresholdValue, MAX_UINT8_TO_HEX_STRING_LENGHT, "0x%02" PRIX8 "",
                             smartAnalyzedAttribute.thresholdInfo.thresholdValue);
         json_object_object_add(thresholdNode, "Threshold Value", json_object_new_string(thresholdValue));
-        if (smartAnalyzedAttribute.thresholdInfo.failStatus != FAIL_STATUS_NOT_SET)
-        {
-            json_object_object_add(thresholdNode, "Fail Status",
-                                   json_object_new_string(smartAnalyzedAttribute.thresholdInfo.failStatusString));
-        }
     }
     break;
     case THRESHOLD_UNKNOWN:
@@ -130,6 +114,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
         // should never get here
         break;
     }
+    json_object_object_add(thresholdNode, "Current Failure Status",
+                           json_object_new_string(smartAnalyzedAttribute.thresholdInfo.currentFailStatusString));
+    json_object_object_add(thresholdNode, "Past Failure Status",
+                           json_object_new_string(smartAnalyzedAttribute.thresholdInfo.pastFailStatusString));
     json_object_object_add(attributeNode, "Threshold Information", thresholdNode);
 
     // add raw data fields
@@ -173,10 +161,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             json_object_object_add(fieldNode, "value", json_object_new_string(fieldValue));
             safe_free(&unitString);
 
-            // create new node, name if Field#? and then add name-value pair in this node
+            // create new node, name if Field ? and then add name-value pair in this node
             json_object* field = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field # %" PRIu8, (fieldCount + 1));
+            snprintf_err_handle(fieldNodeName, MAX_FIELD_NODE_NAME_LENGTH, "Field %" PRIu8, (fieldCount + 1));
             json_object_object_add(field, fieldNodeName, fieldNode);
 
             // Add it into array
@@ -220,10 +208,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             }
             safe_free(&unitString);
 
-            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            // create new node, name if Analyzed Field ? and then add name-value pair in this node
             json_object* node = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field %" PRIu8,
                                 (analyzedFieldCount + 1));
             json_object_object_add(node, fieldNodeName, doubleTypeNode);
             analyzedFieldCount++;
@@ -259,10 +247,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             }
             safe_free(&unitString);
 
-            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            // create new node, name if Analyzed Field ? and then add name-value pair in this node
             json_object* node = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field %" PRIu8,
                                 (analyzedFieldCount + 1));
             json_object_object_add(node, fieldNodeName, int64TypeNode);
             analyzedFieldCount++;
@@ -279,10 +267,10 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
             json_object_object_add(stringTypeNode, "value",
                                    json_object_new_string(smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValue));
 
-            // create new node, name if Analyzed Field#? and then add name-value pair in this node
+            // create new node, name if Analyzed Field ? and then add name-value pair in this node
             json_object* node = json_object_new_object();
             DECLARE_ZERO_INIT_ARRAY(char, fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH);
-            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field # %" PRIu8,
+            snprintf_err_handle(fieldNodeName, MAX_ANALYZED_FIELD_NODE_NAME_LENGTH, "Analyzed Field %" PRIu8,
                                 (analyzedFieldCount + 1));
             json_object_object_add(node, fieldNodeName, stringTypeNode);
             analyzedFieldCount++;
@@ -296,13 +284,15 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
     json_object_object_add(attributeNode, "Raw Data Information", rawDataNode);
 
     DECLARE_ZERO_INIT_ARRAY(char, attributeNodeName, MAX_ATTRIBUTE_NODE_NAME_LENGTH);
-    snprintf_err_handle(attributeNodeName, MAX_ATTRIBUTE_NODE_NAME_LENGTH, "Attribute # %" PRIu8,
+    snprintf_err_handle(attributeNodeName, MAX_ATTRIBUTE_NODE_NAME_LENGTH, "Attribute %" PRIu8,
                         smartAnalyzedAttribute.attributeNumber);
     json_object_object_add(rootObject, attributeNodeName, attributeNode);
 }
 
 static eReturnValues create_JSON_Output_For_ATA(tDevice*              device,
                                                 ataSMARTAnalyzedData* smartAnalyzedData,
+                                                const char*           utilityName,
+                                                const char*           buildVersion,
                                                 char**                jsonFormat)
 {
     if (smartAnalyzedData == M_NULLPTR)
@@ -315,14 +305,9 @@ static eReturnValues create_JSON_Output_For_ATA(tDevice*              device,
     if (rootNode == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    // Add version information
-    json_object_object_add(rootNode, "SMART Attribute JSON Version",
-                           json_object_new_string(SMART_ATTRIBUTE_JSON_VERSION));
-
-    // Add general drive information
-    json_object_object_add(rootNode, "Model Name", json_object_new_string(device->drive_info.product_identification));
-    json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
-    json_object_object_add(rootNode, "Firmware Version", json_object_new_string(device->drive_info.product_revision));
+    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "SMART Attribute",
+                                    SMART_ATTRIBUTE_JSON_VERSION);
+    create_Node_For_Drive_Information(rootNode, device);
 
     for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
     {
@@ -348,7 +333,10 @@ static eReturnValues create_JSON_Output_For_ATA(tDevice*              device,
     return SUCCESS;
 }
 
-eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice* device, char** jsonFormat)
+eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice*    device,
+                                                      const char* utilityName,
+                                                      const char* buildVersion,
+                                                      char**      jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -359,7 +347,7 @@ eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice* device, char** js
         ret = get_ATA_Analyzed_SMART_Attributes(device, smartAnalyzedData);
         if (ret == SUCCESS)
         {
-            ret = create_JSON_Output_For_ATA(device, smartAnalyzedData, jsonFormat);
+            ret = create_JSON_Output_For_ATA(device, smartAnalyzedData, utilityName, buildVersion, jsonFormat);
         }
         safe_free_ata_smart_analyzed_data(&smartAnalyzedData);
     }
