@@ -261,6 +261,7 @@ src_files = ['src/cdl_json.c',
              'src/device_statistics_json.c',
              'src/farm_json.c',
              'src/jsonformat_common.c',
+             'src/scan_json.c',
              'src/scsi_defect_list_json.c',
              'src/smart_attribute_json.c']
 

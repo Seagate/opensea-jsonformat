@@ -74,6 +74,7 @@
     <ClInclude Include="..\..\..\..\include\smart_attribute_json.h" />
     <ClInclude Include="..\..\..\..\include\farm_json.h" />
     <ClInclude Include="..\..\..\..\include\scsi_defect_list_json.h" />
+    <ClInclude Include="..\..\..\..\include\scan_json.h" />
     <ClInclude Include="..\..\..\..\include\drive_information_json.h" />
   </ItemGroup>
   <ItemGroup>
@@ -83,6 +84,7 @@
     <ClCompile Include="..\..\..\..\src\farm_json.c" />
     <ClCompile Include="..\..\..\..\src\scsi_defect_list_json.c" />
     <ClCompile Include="..\..\..\..\src\jsonformat_common.c" />
+    <ClCompile Include="..\..\..\..\src\scan_json.c" />
     <ClCompile Include="..\..\..\..\src\drive_information_json.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
