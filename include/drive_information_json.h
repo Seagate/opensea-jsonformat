@@ -33,12 +33,15 @@ extern "C"
                                                                         char**       jsonFormat);
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_WO(2)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_For_Parent_And_Child_Information(ptrDriveInformation parentInfo,
-                                                                                     ptrDriveInformation childInfo);
+    OPENSEA_JSONFORMAT_API eReturnValues
+    create_JSON_Node_For_Parent_And_Child_Information(json_object*        rootObject,
+                                                      ptrDriveInformation translatorDriveInfo,
+                                                      ptrDriveInformation driveInfo);
     
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_WO(2)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_For_Device_Information(ptrDriveInformation driveInfo);
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_For_Device_Information(json_object*        rootObject,
+                                                                            ptrDriveInformation driveInfo);
 
 #if defined(__cplusplus)
 }
