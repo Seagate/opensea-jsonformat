@@ -26,7 +26,7 @@
 #define DRIVE_INFORMATION_JSON_MINOR_VERSION              0
 #define DRIVE_INFORMATION_JSON_PATCH_VERSION              0
 
-void create_Time_String(char *timeString, uint8_t years, uint16_t days, uint8_t hours, uint8_t minutes, uint8_t seconds)
+static void create_Time_String(char *timeString, uint8_t years, uint16_t days, uint8_t hours, uint8_t minutes, uint8_t seconds)
 {
     char temp[64] = {0};
     if (years > 0)
@@ -56,7 +56,7 @@ void create_Time_String(char *timeString, uint8_t years, uint16_t days, uint8_t 
     }
 }
 
-eReturnValues create_JSON_Node_For_Parent_And_Child_Information(json_object* rootObject, ptrDriveInformation translatorDriveInfo,
+static eReturnValues create_JSON_Node_For_Parent_And_Child_Information(json_object* rootObject, ptrDriveInformation translatorDriveInfo,
                                                                 ptrDriveInformation driveInfo)
 {
     DISABLE_NONNULL_COMPARE
@@ -107,7 +107,7 @@ eReturnValues create_JSON_Node_For_Parent_And_Child_Information(json_object* roo
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* rootObject, ptrDriveInformationSAS_SATA driveInfo)
+static eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* rootObject, ptrDriveInformationSAS_SATA driveInfo)
 {
     eReturnValues ret       = SUCCESS;
     double mCapacity = 0.0;
@@ -1180,7 +1180,7 @@ eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_object* root
     return ret;
 }
 
-eReturnValues create_JSON_Node_For_NVMe_Device_Information(json_object* rootObject, ptrDriveInformationNVMe driveInfo)
+static eReturnValues create_JSON_Node_For_NVMe_Device_Information(json_object* rootObject, ptrDriveInformationNVMe driveInfo)
 {
     eReturnValues ret            = SUCCESS;
     json_object* nvmeInfoObject = json_object_new_object();
@@ -1648,7 +1648,7 @@ eReturnValues create_JSON_Node_For_NVMe_Device_Information(json_object* rootObje
     return ret;
 }
 
-eReturnValues create_JSON_For_Device_Information(json_object* rootObject, ptrDriveInformation driveInfo)
+static eReturnValues create_JSON_For_Device_Information(json_object* rootObject, ptrDriveInformation driveInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
     switch (driveInfo->infoType)

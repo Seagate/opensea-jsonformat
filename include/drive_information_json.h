@@ -26,23 +26,11 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_WO(2)
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_WO(3)
     OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Drive_Information(tDevice*     device, 
                                                                         bool showChildInformation,
                                                                         char**       jsonFormat);
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_WO(2)
-    OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_Node_For_Parent_And_Child_Information(json_object*        rootObject,
-                                                      ptrDriveInformation translatorDriveInfo,
-                                                      ptrDriveInformation driveInfo);
-    
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_WO(2)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_For_Device_Information(json_object*        rootObject,
-                                                                            ptrDriveInformation driveInfo);
-
 #if defined(__cplusplus)
 }
 #endif
