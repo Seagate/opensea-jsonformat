@@ -263,7 +263,8 @@ src_files = ['src/cdl_json.c',
              'src/jsonformat_common.c',
              'src/scan_json.c',
              'src/scsi_defect_list_json.c',
-             'src/smart_attribute_json.c']
+             'src/smart_attribute_json.c',
+             'src\drive_information_json.c']
 
 if target_machine.system() == 'windows'
   global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
