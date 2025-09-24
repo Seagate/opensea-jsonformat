@@ -10,8 +10,8 @@
 //
 // ******************************************************************************************
 //
-// \file farm_json.c
-// \brief This file defines types and functions related to the JSON-based output for FARM.
+// \file drive_information_json.c
+// \brief This file defines types and functions related to the JSON-based output for Drive Information.
 
 #include "io_utils.h"
 #include "drive_info.h"
