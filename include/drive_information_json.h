@@ -15,9 +15,6 @@
 // \brief This file defines types and functions related to the JSON-based output for FARM.
 
 #pragma once
-
-#include "common_public.h"
-#include "common_types.h"
 #include "jsonformat_common.h"
 
 
@@ -27,9 +24,14 @@ extern "C"
 #endif
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_WO(3)
+    M_PARAM_RO(1)
+    M_PARAM_RO(3)
+    M_PARAM_RO(4)
+    M_PARAM_WO(5)
     OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Drive_Information(tDevice*     device, 
                                                                         bool showChildInformation,
+                                                                        const char* utilityName,
+                                                                        const char* buildVersion,
                                                                         char**       jsonFormat);
 #if defined(__cplusplus)
 }
