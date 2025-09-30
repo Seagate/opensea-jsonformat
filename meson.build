@@ -262,7 +262,11 @@ opt_var.add_cmake_defines({
     'CMAKE_BUILD_TYPE': 'Release',
     'BUILD_SHARED_LIBS': 'OFF',
     'DISABLE_EXTRA_LIBS': 'ON',
-    'DISABLE_BSYMBOLIC': 'ON'
+    'DISABLE_BSYMBOLIC': 'ON',
+    'BUILD_APPS': 'OFF',
+    'CMAKE_POLICY_DEFAULT_CMP0126': 'NEW',
+    'CMAKE_POLICY_DEFAULT_CMP0156': 'NEW',
+    'CMAKE_POLICY_DEFAULT_CMP0179': 'NEW'
 })
 
 # Conditionally add the CMAKE_MSVC_RUNTIME_LIBRARY definition
