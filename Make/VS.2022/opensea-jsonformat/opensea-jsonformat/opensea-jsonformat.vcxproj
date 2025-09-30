@@ -69,6 +69,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\cdl_json.h" />
     <ClInclude Include="..\..\..\..\include\device_statistics_json.h" />
+    <ClInclude Include="..\..\..\..\include\dst_json.h" />
     <ClInclude Include="..\..\..\..\include\jsonformat_common.h" />
     <ClInclude Include="..\..\..\..\include\opensea_jsonformat_version.h" />
     <ClInclude Include="..\..\..\..\include\scan_json.h" />
@@ -79,6 +80,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\cdl_json.c" />
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c" />
+    <ClCompile Include="..\..\..\..\src\dst_json.c" />
     <ClCompile Include="..\..\..\..\src\scan_json.c" />
     <ClCompile Include="..\..\..\..\src\smart_attribute_json.c" />
     <ClCompile Include="..\..\..\..\src\farm_json.c" />

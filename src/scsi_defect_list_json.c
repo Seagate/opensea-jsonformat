@@ -201,11 +201,11 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(tDevice*          device,
                                         sectorLength);
                     json_object_object_add(defectEntry, "Sector Length", json_object_new_string(sectorLengthValue));
 
-                    // add this entry into list
-                    json_object_array_add(defectList, defectEntry);
-
                     iter = checkRepeatIter - 1;
                 }
+
+                // add this entry into list
+                json_object_array_add(defectList, defectEntry);
             }
             break;
 

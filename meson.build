@@ -259,6 +259,7 @@ endif
 
 src_files = ['src/cdl_json.c', 
              'src/device_statistics_json.c',
+             'src/dst_json.c',
              'src/farm_json.c',
              'src/jsonformat_common.c',
              'src/scan_json.c',
