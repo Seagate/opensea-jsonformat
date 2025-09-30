@@ -113,6 +113,7 @@ endif
 LIB_SRC_FILES = \
 	$(SRC_DIR)cdl_json.c \
 	$(SRC_DIR)device_statistics_json.c \
+	$(SRC_DIR)drive_information_json.c \
 	$(SRC_DIR)farm_json.c \
 	$(SRC_DIR)jsonformat_common.c \
 	$(SRC_DIR)scan_json.c \

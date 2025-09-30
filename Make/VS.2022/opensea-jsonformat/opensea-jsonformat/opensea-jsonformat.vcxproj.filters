@@ -65,8 +65,8 @@
     <ClCompile Include="..\..\..\..\src\scan_json.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-     <ClCompile Include="..\..\..\..\src\drive_information_json.c">
-       <Filter>Source Files</Filter>
+    <ClCompile Include="..\..\..\..\src\drive_information_json.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
