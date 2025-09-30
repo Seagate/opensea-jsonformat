@@ -106,7 +106,7 @@ void create_JSON_Output_For_Scan(unsigned int     flags,
                                json_object_new_string("Unable to get number of devices from OS"));
     }
     json_object_object_add(rootNode, "Drives Information", driveListNode);
-    safe_free_aligned_core(C_CAST(void**, &scanDeviceList));
+    safe_free(C_CAST(void**, &scanDeviceList));
 
     // Convert JSON object to formatted string
     const char* jstr =
