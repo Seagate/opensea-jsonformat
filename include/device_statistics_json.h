@@ -31,7 +31,7 @@ extern "C"
 #endif
 
     OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_File_For_Device_Statistics(tDevice*                   device,
+    create_JSON_File_For_Device_Statistics(const tDevice*             device,
                                            ptrDeviceStatistics        deviceStatictics,
                                            ptrSeagateDeviceStatistics seagateDeviceStatistics,
                                            bool                       seagateDeviceStatisticsAvailable,
