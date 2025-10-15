@@ -277,6 +277,15 @@ if vscrt_option == 'static_from_buildtype'
       })
 endif
 
+if target_machine.system() == 'windows'
+  # We don't need to install, but this must be set to correct Windows builds in github actions
+  install_dir = meson.current_build_dir() / '__no_install__'
+  opt_var.add_cmake_defines({
+    'CMAKE_INSTALL_PREFIX': install_dir,
+    'CMAKE_C_FLAGS': '-D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS'
+    })
+endif
+
 # Define the CMake subproject
 jsonc = cmake.subproject('json-c', options: opt_var)
 jsonc_dep = jsonc.dependency('json-c')
