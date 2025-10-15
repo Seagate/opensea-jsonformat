@@ -23,7 +23,7 @@ MINOR=0
 PATCH=0
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
-INC_DIR=-I../../include -I../../../json-c -I../../../json-c/build -I../../../opensea-operations/include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include  
+INC_DIR=-I../../include -I../../../json-c -I../../../json-c/buildwin -I../../../opensea-operations/include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include  
 
 MYUNAME := $(shell uname -s)
 ifneq (,$(findstring Linux,$(MYUNAME)))
@@ -123,7 +123,7 @@ LDLIBS = \
 		  ../../../opensea-operations/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-operations.a \
           ../../../opensea-transport/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-transport.a \
 		  ../../../opensea-common/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-common.a \
-		  ../../../json-c/build/libjson-c.a -lm 
+		  ../../../json-c/buildwin/libjson-c.a -lm 
 
 ifneq (,$(findstring MINGW64,$(UNAME)))
 	#BR note: pragma comment(lib,"Version.lib") is not supported by gcc, use the below supply the version.lib functions
@@ -170,7 +170,7 @@ opensea-libs:
 	$(MAKE) -C ../../../opensea-operations/Make/gccWin -f Makefile.gccWin
 
 json-c:
-	$(shell ./buildjsonc.sh)
+	../buildjsonc.sh buildwin $(CC)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(PROJECT_DEFINES) $(INC_DIR) $< -o $@

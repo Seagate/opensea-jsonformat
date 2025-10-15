@@ -140,7 +140,7 @@ opensea-libs:
 	$(MAKE) -C ../../../opensea-operations/Make/gcc
 
 json-c:
-	$(shell ./buildjsonc.sh)
+	../buildjsonc.sh build $(CC)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(PROJECT_DEFINES) $(INC_DIR) $< -o $@
