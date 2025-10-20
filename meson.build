@@ -249,46 +249,8 @@ endif
 
 incdir = include_directories('include')
 
-cmake = import('cmake')
-
-# Retrieve the value of the b_vscrt option
-vscrt_option = get_option('b_vscrt')
-
-# Define the CMake subproject options
-opt_var = cmake.subproject_options()
-opt_var.add_cmake_defines({
-    'GEN_FILES': 'ON',
-    'BUILD_TESTING': 'OFF',
-    'CMAKE_BUILD_TYPE': 'Release',
-    'BUILD_SHARED_LIBS': 'OFF',
-    'DISABLE_EXTRA_LIBS': 'ON',
-    'DISABLE_BSYMBOLIC': 'ON',
-    'BUILD_APPS': 'OFF',
-    'CMAKE_POLICY_DEFAULT_CMP0126': 'NEW',
-    'CMAKE_POLICY_DEFAULT_CMP0156': 'NEW',
-    'CMAKE_POLICY_DEFAULT_CMP0179': 'NEW'
-})
-
-# Conditionally add the CMAKE_MSVC_RUNTIME_LIBRARY definition
-if vscrt_option == 'static_from_buildtype'
-    opt_var.add_cmake_defines({
-      'CMAKE_POLICY_DEFAULT_CMP0091' : 'NEW',
-      'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded'
-      })
-endif
-
-if target_machine.system() == 'windows'
-  # We don't need to install, but this must be set to correct Windows builds in github actions
-  install_dir = meson.current_build_dir() / '__no_install__'
-  opt_var.add_cmake_defines({
-    'CMAKE_INSTALL_PREFIX': install_dir,
-    'CMAKE_C_FLAGS': '-D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS'
-    })
-endif
-
-# Define the CMake subproject
-jsonc = cmake.subproject('json-c', options: opt_var)
-jsonc_dep = jsonc.dependency('json-c')
+jsonc = subproject('json-c')
+jsonc_dep = jsonc.get_variable('jsonc_dep')
 
 opensea_common = subproject('opensea-common')
 opensea_common_dep = opensea_common.get_variable('opensea_common_dep')
