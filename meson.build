@@ -297,7 +297,7 @@ endif
 
 incdir = include_directories('include')
 
-jsonc = subproject('json-c', default_options : ['default_library=static', 'build_apps=false', 'disable_werror=true', 'disable_extra_libs=true', 'disable_json_pointer=false', 'disable_json_patch=false'])
+jsonc = subproject('json-c', default_options : ['default_library=static', 'build_apps=false', 'disable_extra_libs=true', 'disable_json_pointer=false', 'disable_json_patch=false'])
 jsonc_dep = jsonc.get_variable('jsonc_dep')
 
 opensea_common = subproject('opensea-common')
