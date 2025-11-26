@@ -91,9 +91,9 @@ static void translate_String_To_TimeUnitType(const char* unitString, eCDLTimeFie
     }
 }
 
-static eReturnValues create_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
-                                                           tCDLSettings* cdlSettings,
-                                                           const char*   logPath)
+static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
+                                                           tCDLSettings*  cdlSettings,
+                                                           const char*    logPath)
 {
     eReturnValues ret = SUCCESS;
 
@@ -280,9 +280,9 @@ static eReturnValues create_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
     return ret;
 }
 
-static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(tDevice*      device,
-                                                            tCDLSettings* cdlSettings,
-                                                            const char*   logPath)
+static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* device,
+                                                            tCDLSettings*  cdlSettings,
+                                                            const char*    logPath)
 {
     eReturnValues ret = SUCCESS;
 
@@ -450,7 +450,7 @@ static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(tDevice*      device
     return ret;
 }
 
-eReturnValues create_JSON_File_For_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings, const char* logPath)
+eReturnValues create_JSON_File_For_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings, const char* logPath)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -466,10 +466,10 @@ eReturnValues create_JSON_File_For_CDL_Settings(tDevice* device, tCDLSettings* c
     return ret;
 }
 
-static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
-                                                          tCDLSettings* cdlSettings,
-                                                          const char*   fileName,
-                                                          bool          skipValidation)
+static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
+                                                          tCDLSettings*  cdlSettings,
+                                                          const char*    fileName,
+                                                          bool           skipValidation)
 {
     eReturnValues ret = SUCCESS;
 
@@ -765,10 +765,10 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(tDevice*      device,
     return ret;
 }
 
-static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(tDevice*      device,
-                                                           tCDLSettings* cdlSettings,
-                                                           const char*   fileName,
-                                                           bool          skipValidation)
+static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device,
+                                                           tCDLSettings*  cdlSettings,
+                                                           const char*    fileName,
+                                                           bool           skipValidation)
 {
     eReturnValues ret = SUCCESS;
 
@@ -1053,10 +1053,10 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(tDevice*      device,
     return ret;
 }
 
-eReturnValues parse_JSON_File_For_CDL_Settings(tDevice*      device,
-                                               tCDLSettings* cdlSettings,
-                                               const char*   fileName,
-                                               bool          skipValidation)
+eReturnValues parse_JSON_File_For_CDL_Settings(const tDevice* device,
+                                               tCDLSettings*  cdlSettings,
+                                               const char*    fileName,
+                                               bool           skipValidation)
 {
     eReturnValues ret = SUCCESS;
 
