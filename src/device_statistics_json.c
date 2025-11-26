@@ -458,7 +458,7 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
     }
 }
 
-static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(tDevice*                   device,
+static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(const tDevice*             device,
                                                                   ptrDeviceStatistics        deviceStatictics,
                                                                   ptrSeagateDeviceStatistics seagateDeviceStatistics,
                                                                   bool        seagateDeviceStatisticsAvailable,
@@ -961,7 +961,7 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(tDevice*      
     return ret;
 }
 
-static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(tDevice*                   device,
+static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(const tDevice*             device,
                                                                    ptrDeviceStatistics        deviceStatictics,
                                                                    ptrSeagateDeviceStatistics seagateDeviceStatistics,
                                                                    bool        seagateDeviceStatisticsAvailable,
@@ -1698,7 +1698,7 @@ static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(tDevice*     
     return ret;
 }
 
-eReturnValues create_JSON_Output_For_Device_Statistics(tDevice*                   device,
+eReturnValues create_JSON_Output_For_Device_Statistics(const tDevice*             device,
                                                        ptrDeviceStatistics        deviceStatictics,
                                                        ptrSeagateDeviceStatistics seagateDeviceStatistics,
                                                        bool                       seagateDeviceStatisticsAvailable,

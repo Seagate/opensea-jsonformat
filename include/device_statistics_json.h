@@ -32,7 +32,7 @@ extern "C"
     M_PARAM_RO(6)
     M_PARAM_WO(7)
     OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_Output_For_Device_Statistics(tDevice*                   device,
+    create_JSON_Output_For_Device_Statistics(const tDevice*             device,
                                              ptrDeviceStatistics        deviceStatictics,
                                              ptrSeagateDeviceStatistics seagateDeviceStatistics,
                                              bool                       seagateDeviceStatisticsAvailable,

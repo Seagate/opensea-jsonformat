@@ -231,7 +231,9 @@ static void get_Execution_Status_Name(eDriveType driveType, dstDescriptor dstDes
     }
 }
 
-static void create_JSON_Nodes_For_DST_Log_Entries(json_object* rootObject, tDevice* device, ptrDstLogEntries entries)
+static void create_JSON_Nodes_For_DST_Log_Entries(json_object*     rootObject,
+                                                  const tDevice*   device,
+                                                  ptrDstLogEntries entries)
 {
     json_object* dstLog = json_object_new_object();
 
@@ -328,7 +330,7 @@ static void create_JSON_Nodes_For_DST_Log_Entries(json_object* rootObject, tDevi
     json_object_object_add(rootObject, "DST Log", dstLog);
 }
 
-eReturnValues create_JSON_Output_For_DST(tDevice*         device,
+eReturnValues create_JSON_Output_For_DST(const tDevice*   device,
                                          ptrDstLogEntries entries,
                                          const char*      utilityName,
                                          const char*      buildVersion,

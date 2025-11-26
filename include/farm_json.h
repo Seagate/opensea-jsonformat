@@ -29,11 +29,11 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_FARM(tDevice*     device,
-                                                                     farmLogData* farmdata,
-                                                                     const char*  utilityName,
-                                                                     const char*  buildVersion,
-                                                                     char**       jsonFormat);
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_FARM(const tDevice* device,
+                                                                     farmLogData*   farmdata,
+                                                                     const char*    utilityName,
+                                                                     const char*    buildVersion,
+                                                                     char**         jsonFormat);
 
 #if defined(__cplusplus)
 }

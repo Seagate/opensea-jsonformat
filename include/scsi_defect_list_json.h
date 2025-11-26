@@ -29,7 +29,7 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(tDevice*          device,
+    OPENSEA_OPERATIONS_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*    device,
                                                                                  ptrSCSIDefectList defects,
                                                                                  const char*       utilityName,
                                                                                  const char*       buildVersion,

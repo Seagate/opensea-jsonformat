@@ -289,7 +289,7 @@ static void create_Node_For_SMART_Attribute(json_object* rootObject, ataSMARTAna
     json_object_object_add(rootObject, attributeNodeName, attributeNode);
 }
 
-static eReturnValues create_JSON_Output_For_ATA(tDevice*              device,
+static eReturnValues create_JSON_Output_For_ATA(const tDevice*        device,
                                                 ataSMARTAnalyzedData* smartAnalyzedData,
                                                 const char*           utilityName,
                                                 const char*           buildVersion,
@@ -333,10 +333,10 @@ static eReturnValues create_JSON_Output_For_ATA(tDevice*              device,
     return SUCCESS;
 }
 
-eReturnValues create_JSON_Output_For_SMART_Attributes(tDevice*    device,
-                                                      const char* utilityName,
-                                                      const char* buildVersion,
-                                                      char**      jsonFormat)
+eReturnValues create_JSON_Output_For_SMART_Attributes(const tDevice* device,
+                                                      const char*    utilityName,
+                                                      const char*    buildVersion,
+                                                      char**         jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 

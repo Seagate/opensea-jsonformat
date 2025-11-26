@@ -1398,11 +1398,11 @@ static void create_Node_For_FARM_Reliability_Statistics_Page(json_object*       
     }
 }
 
-eReturnValues create_JSON_Output_For_FARM(tDevice*     device,
-                                          farmLogData* farmdata,
-                                          const char*  utilityName,
-                                          const char*  buildVersion,
-                                          char**       jsonFormat)
+eReturnValues create_JSON_Output_For_FARM(const tDevice* device,
+                                          farmLogData*   farmdata,
+                                          const char*    utilityName,
+                                          const char*    buildVersion,
+                                          char**         jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 

@@ -72,7 +72,7 @@ static void get_Address_Descriptor_Name(eSCSIAddressDescriptors addressDescripto
     }
 }
 
-eReturnValues create_JSON_Output_For_SCSI_Defect_List(tDevice*          device,
+eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*    device,
                                                       ptrSCSIDefectList defects,
                                                       const char*       utilityName,
                                                       const char*       buildVersion,
