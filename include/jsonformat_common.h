@@ -69,7 +69,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_WO(1)
     M_PARAM_RO(2)
-    OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* rootObject, tDevice* device);
+    OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* rootObject, const tDevice* device);
 
 #if defined(__cplusplus)
 }

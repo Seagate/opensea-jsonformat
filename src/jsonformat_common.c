@@ -50,7 +50,7 @@ void create_Node_For_Utility_Version(json_object* rootObject,
     json_object_object_add(rootObject, "Utility Information", jsonNode);
 }
 
-void create_Node_For_Drive_Information(json_object* rootObject, tDevice* device)
+void create_Node_For_Drive_Information(json_object* rootObject, const tDevice* device)
 {
     json_object* jsonNode = json_object_new_object();
 
