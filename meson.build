@@ -266,35 +266,17 @@ endif
 
 global_cpp_args = []
 
-if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
-    if c.version().version_compare('<5.0')
-        #4.7.4+ has C11 support, but c89 is the default standard so we need to change it.
-        if c.has_argument('-std=gnu11')
-            c_std = 'gnu11'
-            if meson.version().version_compare('<1.0.0')
-                add_project_arguments('-std=gnu11', language: 'c')
-            endif
-        elif c.has_argument('-std=gnu99')
-            #Add this argument to the list since C99 is a minimum required C compiler standard
-            c_std = 'gnu99'
-            if meson.version().version_compare('<1.0.0')
-                add_project_arguments('-std=gnu99', language: 'c')
-            endif
-        else
-            error('C99/GNU99 standard is required but was not able to be set!')
-        endif
-    endif
-endif
-
-src_files = ['src/cdl_json.c', 
-             'src/device_statistics_json.c',
-             'src/drive_information_json.c',
-             'src/dst_json.c',
-             'src/farm_json.c',
-             'src/jsonformat_common.c',
-             'src/scan_json.c',
-             'src/scsi_defect_list_json.c',
-             'src/smart_attribute_json.c']
+src_files = [
+    'src/cdl_json.c',
+    'src/device_statistics_json.c',
+    'src/drive_information_json.c',
+    'src/dst_json.c',
+    'src/farm_json.c',
+    'src/jsonformat_common.c',
+    'src/scan_json.c',
+    'src/scsi_defect_list_json.c',
+    'src/smart_attribute_json.c',
+]
 
 if target_machine.system() == 'windows'
     global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
