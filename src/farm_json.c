@@ -1154,7 +1154,7 @@ static void create_Node_For_FARM_Error_Statistics_Page(json_object*         root
     }
 }
 
-static void create_Node_For_FARM_Enviornmental_Statistics_Page(json_object*               rootObject,
+static void create_Node_For_FARM_Environmental_Statistics_Page(json_object*               rootObject,
                                                                farmEnvironmentStatistics* environment,
                                                                eFARMDriveInterface        driveInterface,
                                                                uint64_t                   timeRestrictedRangeMS)
@@ -1452,7 +1452,7 @@ eReturnValues create_JSON_Output_For_FARM(const tDevice* device,
         create_Node_For_FARM_Drive_Information_Page(rootNode, &farmdata->driveinfo, farmInterface);
         create_Node_For_FARM_Workload_Statistics_Page(rootNode, &farmdata->workload, timeRestrictedRangeMS);
         create_Node_For_FARM_Error_Statistics_Page(rootNode, &farmdata->error, headCount, farmInterface);
-        create_Node_For_FARM_Enviornmental_Statistics_Page(rootNode, &farmdata->environment, farmInterface,
+        create_Node_For_FARM_Environmental_Statistics_Page(rootNode, &farmdata->environment, farmInterface,
                                                            timeRestrictedRangeMS);
         create_Node_For_FARM_Reliability_Statistics_Page(rootNode, &farmdata->reliability, headCount, farmInterface,
                                                          timeRestrictedRangeMS);
