@@ -1,26 +1,20 @@
+// SPDX-License-Identifier: MPL-2.0
 //
-// cdl_config_file.h
+// Do NOT modify or remove this copyright and license
 //
-// Do NOT modify or remove this copyright and confidentiality notice.
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// This software is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// The code contained herein is CONFIDENTIAL to Seagate Technology LLC
-// and may be covered under one or more Non-Disclosure Agreements.
-// All or portions are also trade secret.
-// Any use, modification, duplication, derivation, distribution or disclosure
-// of this code, for any reason, not expressly authorized is prohibited.
-// All other rights are expressly reserved by Seagate Technology LLC.
+// ******************************************************************************************
 //
-// *****************************************************************************
-
 // \file device_statistics_json.h
-// \brief This file defines types and functions related to the JSON-based Device Statistics log file process.
+// \brief This file defines types and functions related to the JSON-based outptu for Device Statistics log.
 
 #pragma once
 
-#include "common_public.h"
-#include "common_types.h"
 #include "device_statistics.h"
 #include "jsonformat_common.h"
 #include "seagate_operations.h"
@@ -30,12 +24,21 @@ extern "C"
 {
 #endif
 
+    M_NONNULL_PARAM_LIST(1, 2, 5, 6)
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    M_PARAM_RO(3)
+    M_PARAM_RO(5)
+    M_PARAM_RO(6)
+    M_PARAM_WO(7)
     OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_File_For_Device_Statistics(const tDevice*             device,
-                                           ptrDeviceStatistics        deviceStatictics,
-                                           ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                           bool                       seagateDeviceStatisticsAvailable,
-                                           char**                     jsonFormat);
+    create_JSON_Output_For_Device_Statistics(const tDevice*             device,
+                                             ptrDeviceStatistics        deviceStatictics,
+                                             ptrSeagateDeviceStatistics seagateDeviceStatistics,
+                                             bool                       seagateDeviceStatisticsAvailable,
+                                             const char*                utilityName,
+                                             const char*                buildVersion,
+                                             char**                     jsonFormat);
 
 #if defined(__cplusplus)
 }

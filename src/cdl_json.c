@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,9 +12,6 @@
 //
 // \file cdl_json.c
 // \brief This file defines types and functions related to the JSON-based output for Seagate CDL config.
-
-#include <json.h>
-#include <json_object.h>
 
 #include "cdl_json.h"
 #include "io_utils.h"

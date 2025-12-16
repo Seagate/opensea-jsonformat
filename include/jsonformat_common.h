@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,9 @@
 // \brief This file defines common things for the opensea-jsonformat Library.
 
 #pragma once
+
+#include <json.h>
+#include <json_object.h>
 
 #include "common_public.h"
 
@@ -50,6 +53,23 @@ extern "C"
 #    endif
 #    define OPENSEA_JSONFORMAT_API
 #endif
+
+    M_NONNULL_PARAM_LIST(1, 2, 3, 4, 5)
+    M_PARAM_WO(1)
+    M_PARAM_RO(2)
+    M_PARAM_RO(3)
+    M_PARAM_RO(4)
+    M_PARAM_RO(5)
+    OPENSEA_JSONFORMAT_API void create_Node_For_Utility_Version(json_object* rootObject,
+                                                                const char*  utilityName,
+                                                                const char*  buildVersion,
+                                                                const char*  logName,
+                                                                const char*  jsonVersion);
+
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_WO(1)
+    M_PARAM_RO(2)
+    OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* rootObject, const tDevice* device);
 
 #if defined(__cplusplus)
 }

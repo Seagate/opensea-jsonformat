@@ -2,7 +2,7 @@
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -116,7 +116,14 @@ endif
 
 LIB_SRC_FILES = \
 	$(SRC_DIR)cdl_json.c \
-	$(SRC_DIR)device_statistics_json.c
+	$(SRC_DIR)device_statistics_json.c \
+	$(SRC_DIR)drive_information_json.c \
+	$(SRC_DIR)dst_json.c \
+	$(SRC_DIR)farm_json.c \
+	$(SRC_DIR)jsonformat_common.c \
+	$(SRC_DIR)scan_json.c \
+	$(SRC_DIR)scsi_defect_list_json.c \
+	$(SRC_DIR)smart_attribute_json.c
 
 UNAME := $(shell uname)
 

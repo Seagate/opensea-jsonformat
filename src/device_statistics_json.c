@@ -1,29 +1,20 @@
+// SPDX-License-Identifier: MPL-2.0
 //
-// cdl_config_file.c
+// Do NOT modify or remove this copyright and license
 //
-// Do NOT modify or remove this copyright and confidentiality notice.
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved.
+// This software is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// The code contained herein is CONFIDENTIAL to Seagate Technology LLC
-// and may be covered under one or more Non-Disclosure Agreements.
-// All or portions are also trade secret.
-// Any use, modification, duplication, derivation, distribution or disclosure
-// of this code, for any reason, not expressly authorized is prohibited.
-// All other rights are expressly reserved by Seagate Technology LLC.
+// ******************************************************************************************
 //
-// *****************************************************************************
-
 // \file device_statistics_json.c
-// \brief This file defines types and functions related to the JSON-based Device Statistics log file process.
-
-#include <json.h>
-#include <json_object.h>
+// \brief This file defines types and functions related to the JSON-based output for Device Statistics log.
 
 #include "device_statistics_json.h"
 #include "io_utils.h"
-#include "logs.h"
-#include "secure_file.h"
 #include "time_utils.h"
 
 #define COMBINE_DEVICE_STATISTICS_JSON_VERSIONS_(x, y, z) #x "." #y "." #z
@@ -41,24 +32,33 @@
 #define MAX_SEAGATE_VALUE_STRING_LENGHT 25
 #define MAX_VALUE_STRING_LENGHT         60
 
-typedef enum _eStatisticsType
-{
-    STATISTICS_TYPE_COUNT,
-    STATISTICS_TYPE_WORKLOAD_UTILIZATION,
-    STATISTICS_TYPE_UTILIZATION_USAGE_RATE,
-    STATISTICS_TYPE_TEMPERATURE,
-    STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP,
-    STATISTICS_TYPE_TIME_MINUTES,
-    // SATA Specific
-    STATISTICS_TYPE_SATA_RESOURCE_AVAILABILITY,
-    STATISTICS_TYPE_SATA_RANDOM_WRITE_RESOURCE_USED,
-    // SCSI Specific
-    STATISTICS_TYPE_SCSI_NON_VOLATILE_TIME,
-    STATISTICS_TYPE_SCSI_DATE,
-    STATISTICS_TYPE_SCSI_TIME_INTERVAL,
-    STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE,
-    STATISTICS_TYPE_SCSI_HUMIDITY,
-} eStatisticsType;
+M_DECLARE_ENUM(eStatisticsType,
+               /*!< Statistics Type Count. */
+               STATISTICS_TYPE_COUNT = 0,
+               /*!< Statistics Type Workload Utilization. */
+               STATISTICS_TYPE_WORKLOAD_UTILIZATION = 1,
+               /*!< Statistics Type Utilixation Usage Rate. */
+               STATISTICS_TYPE_UTILIZATION_USAGE_RATE = 2,
+               /*!< Statistics Type Temperature. */
+               STATISTICS_TYPE_TEMPERATURE = 3,
+               /*!< Statistics Type Date and Time. */
+               STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP = 4,
+               /*!< Statistics Type Time in minutes. */
+               STATISTICS_TYPE_TIME_MINUTES = 5,
+               /*!< Statistics Type Resource availability (SATA only). */
+               STATISTICS_TYPE_SATA_RESOURCE_AVAILABILITY = 6,
+               /*!< Statistics Type Randon Write resource used (SATA only). */
+               STATISTICS_TYPE_SATA_RANDOM_WRITE_RESOURCE_USED = 7,
+               /*!< Statistics Type Non-volatile Time (SAS only). */
+               STATISTICS_TYPE_SCSI_NON_VOLATILE_TIME = 8,
+               /*!< Statistics Type Date (SAS only). */
+               STATISTICS_TYPE_SCSI_DATE = 9,
+               /*!< Statistics Type Time interval (SAS only). */
+               STATISTICS_TYPE_SCSI_TIME_INTERVAL = 10,
+               /*!< Statistics Type Environmental Temperature (SAS only). */
+               STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE = 11,
+               /*!< Statistics Type Humidity (SAS only). */
+               STATISTICS_TYPE_SCSI_HUMIDITY = 12);
 
 static void create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
                                               json_object*     statisticsNode,
@@ -73,15 +73,16 @@ static void create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
             uint64_t timeInMinutes = C_CAST(uint64_t, theStatistic.statisticsDataValue);
             if (!theStatistic.isTimeStampsInMinutes)
                 timeInMinutes *= UINT64_C(60);
-            snprintf(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu64 " minutes", timeInMinutes);
+            snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu64 " minutes", timeInMinutes);
         }
         else
         {
-            snprintf(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu32 "", theStatistic.statisticsDataValue);
+            snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu32 "",
+                                theStatistic.statisticsDataValue);
         }
     }
     else
-        snprintf(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%s", "Not Avaliable");
+        snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%s", "Not Avaliable");
 
     json_object_object_add(statisticsNode, statisticName, json_object_new_string(valueString));
 }
@@ -141,6 +142,7 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                                        json_object_new_string("Trigger when lesser"));
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
+            case THRESHOLD_TYPE_RESERVED:
             default:
                 json_object_object_add(statisticsNode, "Threshold Trigger Type", json_object_new_string("No Trigger"));
                 break;
@@ -162,11 +164,11 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 {
                     double workloadUtilization = C_CAST(double, theStatistic.statisticValue);
                     workloadUtilization *= 0.01; // convert to fractional percentage
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%%", workloadUtilization);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%%", workloadUtilization);
                 }
                 else
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", ">655.34%%");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", ">655.34%%");
                 }
                 break;
 
@@ -182,55 +184,57 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                     DECLARE_ZERO_INIT_ARRAY(char, utilizationUsageRateString, 10);
                     if (utilizationUsageRate == 255)
                     {
-                        snprintf(utilizationUsageRateString, 10, "%s", ">254%%");
+                        snprintf_err_handle(utilizationUsageRateString, 10, "%s", ">254%%");
                     }
                     else
                     {
-                        snprintf(utilizationUsageRateString, 10, "%" PRIu8 "%%", utilizationUsageRate);
+                        snprintf_err_handle(utilizationUsageRateString, 10, "%" PRIu8 "%%", utilizationUsageRate);
                     }
 
                     DECLARE_ZERO_INIT_ARRAY(char, rateBasisString, 25);
                     switch (rateBasis)
                     {
                     case 0: // since manufacture
-                        snprintf(rateBasisString, 25, "%s", "since manufacture");
+                        snprintf_err_handle(rateBasisString, 25, "%s", "since manufacture");
                         break;
                     case 4: // since power on reset
-                        snprintf(rateBasisString, 25, "%s", "since power on reset");
+                        snprintf_err_handle(rateBasisString, 25, "%s", "since power on reset");
                         break;
                     case 8: // power on hours
-                        snprintf(rateBasisString, 25, "%s", "for POH");
+                        snprintf_err_handle(rateBasisString, 25, "%s", "for POH");
                         break;
                     case 0xF: // undetermined
                     default:
-                        snprintf(rateBasisString, 25, "%s", "undetermined");
+                        snprintf_err_handle(rateBasisString, 25, "%s", "undetermined");
                         break;
                     }
 
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s %s", utilizationUsageRateString,
-                             rateBasisString);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s %s", utilizationUsageRateString,
+                                        rateBasisString);
                 }
                 break;
 
                 case 0x10: // invalid due to insufficient info
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Invalid - insufficient info collected");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s",
+                                        "Invalid - insufficient info collected");
                     break;
 
                 case 0x81: // unreasonable due to date and time timestamp
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Unreasonable due to date and time timestamp");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s",
+                                        "Unreasonable due to date and time timestamp");
                     break;
 
                 case 0xFF:
                 default: // invalid for unknown reason
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Invalid for unknown reason");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Invalid for unknown reason");
                     break;
                 }
             }
             break;
 
             case STATISTICS_TYPE_TEMPERATURE:
-                snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
-                         C_CAST(int8_t, theStatistic.statisticValue));
+                snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
+                                    C_CAST(int8_t, theStatistic.statisticValue));
                 break;
 
             case STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP:
@@ -255,19 +259,20 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                     }
 
                     convert_Seconds_To_Displayable_Time(statisticValue, &years, &days, &hours, &minutes, &seconds);
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT,
-                             "%" PRIu8 " years %" PRIu16 " days %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8 " seconds",
-                             years, days, hours, minutes, seconds);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
+                                        "%" PRIu8 " years %" PRIu16 " days %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8
+                                        " seconds",
+                                        years, days, hours, minutes, seconds);
                 }
                 else
                 {
                     if (statisticsType == STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP)
                     {
-                        snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "0 milliseconds");
+                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "0 milliseconds");
                     }
                     else
                     {
-                        snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "0 minutes");
+                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "0 minutes");
                     }
                 }
                 break;
@@ -275,7 +280,7 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
             case STATISTICS_TYPE_SATA_RESOURCE_AVAILABILITY:
             {
                 double fractionAvailable = C_CAST(double, M_Word0(theStatistic.statisticValue)) / 65535.0;
-                snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%% Available", fractionAvailable);
+                snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%% Available", fractionAvailable);
             }
             break;
 
@@ -284,13 +289,13 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 uint8_t resourceValue = M_Byte0(theStatistic.statisticValue);
                 if (/* resourceValue >= 0 && */ resourceValue <= 0x7F)
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "Within nominal bounds (%" PRIX8 "h)",
-                             resourceValue);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Within nominal bounds (%" PRIX8 "h)",
+                                        resourceValue);
                 }
                 else
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "Exceeds nominal bounds (%" PRIX8 "h)",
-                             resourceValue);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Exceeds nominal bounds (%" PRIX8 "h)",
+                                        resourceValue);
                 }
             }
             break;
@@ -299,17 +304,17 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 switch (theStatistic.statisticValue)
                 {
                 case 0:
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Volatile");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Volatile");
                     break;
                 case 1:
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Nonvolatile for unknown time");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Nonvolatile for unknown time");
                     break;
                 case 0xFFFFFF:
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Nonvolatile indefinitely");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Nonvolatile indefinitely");
                     break;
                 default: // time in minutes
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile for %" PRIu64 "minutes",
-                             theStatistic.statisticValue);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile for %" PRIu64 "minutes",
+                                        theStatistic.statisticValue);
                     break;
                 }
                 break;
@@ -328,11 +333,11 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 week[2] = '\0';
                 if (strcmp(year, "    ") == 0 && strcmp(week, "  ") == 0)
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Not set");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Not set");
                 }
                 else
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "Week %s, %s", week, year);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Week %s, %s", week, year);
                 }
             }
             break;
@@ -347,31 +352,40 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 switch (exponent)
                 {
                 case 1: // deci
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "deci seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "deci seconds");
                     break;
                 case 2: // centi
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "centi seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "centi seconds");
                     break;
                 case 3: // milli
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "milli seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "milli seconds");
                     break;
                 case 6: // micro
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "micro seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "micro seconds");
                     break;
                 case 9: // nano
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "nano seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "nano seconds");
                     break;
                 case 12: // pico
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "pico seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "pico seconds");
                     break;
                 case 15: // femto
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "femto seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "femto seconds");
                     break;
                 case 18: // atto
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer, "atto seconds");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "atto seconds");
                     break;
                 default:
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " Unknown exponent value", integer);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " Unknown exponent value",
+                                        integer);
                     break;
                 }
             }
@@ -382,40 +396,40 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 {
                     if (isLimit)
                     {
-                        snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No Temperature Limit");
+                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No Temperature Limit");
                     }
                     else
                     {
-                        snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No Valid Temperature");
+                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No Valid Temperature");
                     }
                 }
                 else
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
-                             C_CAST(int8_t, theStatistic.statisticValue));
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
+                                        C_CAST(int8_t, theStatistic.statisticValue));
                 }
                 break;
 
             case STATISTICS_TYPE_SCSI_HUMIDITY:
                 if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu8 "",
-                             C_CAST(uint8_t, theStatistic.statisticValue));
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu8 "",
+                                        C_CAST(uint8_t, theStatistic.statisticValue));
                 }
                 else if (theStatistic.statisticValue == 255)
                 {
                     if (isLimit)
                     {
-                        snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No relative humidity limit");
+                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No relative humidity limit");
                     }
                     else
                     {
-                        snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No valid relative humidity");
+                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No valid relative humidity");
                     }
                 }
                 else
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Reserved value reported");
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Reserved value reported");
                 }
                 break;
 
@@ -423,19 +437,20 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
             default:
                 if (statisticUnit != M_NULLPTR)
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 " %s", theStatistic.statisticValue,
-                             statisticUnit);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 " %s",
+                                        theStatistic.statisticValue, statisticUnit);
                 }
                 else
                 {
-                    snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 "", theStatistic.statisticValue);
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 "",
+                                        theStatistic.statisticValue);
                 }
                 break;
             }
         }
         else
         {
-            snprintf(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Invalid");
+            snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Invalid");
         }
         json_object_object_add(statisticsNode, "Value", json_object_new_string(valueString));
 
@@ -443,11 +458,13 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
     }
 }
 
-static eReturnValues create_JSON_File_For_ATA_Device_Statistics(const tDevice*             device,
-                                                                ptrDeviceStatistics        deviceStatictics,
-                                                                ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                                bool   seagateDeviceStatisticsAvailable,
-                                                                char** jsonFormat)
+static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(const tDevice*             device,
+                                                                  ptrDeviceStatistics        deviceStatictics,
+                                                                  ptrSeagateDeviceStatistics seagateDeviceStatistics,
+                                                                  bool        seagateDeviceStatisticsAvailable,
+                                                                  const char* utilityName,
+                                                                  const char* buildVersion,
+                                                                  char**      jsonFormat)
 {
     eReturnValues ret                           = NOT_SUPPORTED;
     bool          atleastOneStatisticsAvailable = false;
@@ -462,14 +479,9 @@ static eReturnValues create_JSON_File_For_ATA_Device_Statistics(const tDevice*  
     if (rootNode == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    // Add version information
-    json_object_object_add(rootNode, "Device Statistics Version",
-                           json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
-
-    // Add general drive information
-    json_object_object_add(rootNode, "Model Name", json_object_new_string(device->drive_info.product_identification));
-    json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
-    json_object_object_add(rootNode, "Firmware Version", json_object_new_string(device->drive_info.product_revision));
+    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
+                                    DEVICE_STATISTICS_JSON_VERSION);
+    create_Node_For_Drive_Information(rootNode, device);
 
     if (deviceStatictics->sataStatistics.generalStatisticsSupported)
     {
@@ -719,16 +731,17 @@ static eReturnValues create_JSON_File_For_ATA_Device_Statistics(const tDevice*  
                     switch (vendorSpecificIter + 1)
                     {
                     case 1: // pressure
-                        snprintf(statisticName, 64, "Pressure Min/Max Reached");
+                        snprintf_err_handle(statisticName, 64, "Pressure Min/Max Reached");
                         break;
                     default:
-                        snprintf(statisticName, 64, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
+                        snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8,
+                                            vendorSpecificIter + 1);
                         break;
                     }
                 }
                 else
                 {
-                    snprintf(statisticName, 64, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
+                    snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
                 }
 
                 create_Node_For_Statistic(STATISTICS_TYPE_COUNT, vendorSpecificStatistics,
@@ -741,11 +754,11 @@ static eReturnValues create_JSON_File_For_ATA_Device_Statistics(const tDevice*  
         DECLARE_ZERO_INIT_ARRAY(char, statisticName, 30);
         if (SEAGATE == is_Seagate_Family(device))
         {
-            snprintf(statisticName, 30, "Seagate Specific Statistics");
+            snprintf_err_handle(statisticName, 30, "Seagate Specific Statistics");
         }
         else
         {
-            snprintf(statisticName, 30, "Vendor Specific Statistics");
+            snprintf_err_handle(statisticName, 30, "Vendor Specific Statistics");
         }
 
         json_object_object_add(rootNode, statisticName, vendorSpecificStatistics);
@@ -948,11 +961,13 @@ static eReturnValues create_JSON_File_For_ATA_Device_Statistics(const tDevice*  
     return ret;
 }
 
-static eReturnValues create_JSON_File_For_SCSI_Device_Statistics(const tDevice*             device,
-                                                                 ptrDeviceStatistics        deviceStatictics,
-                                                                 ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                                 bool   seagateDeviceStatisticsAvailable,
-                                                                 char** jsonFormat)
+static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(const tDevice*             device,
+                                                                   ptrDeviceStatistics        deviceStatictics,
+                                                                   ptrSeagateDeviceStatistics seagateDeviceStatistics,
+                                                                   bool        seagateDeviceStatisticsAvailable,
+                                                                   const char* utilityName,
+                                                                   const char* buildVersion,
+                                                                   char**      jsonFormat)
 {
     eReturnValues ret                           = NOT_SUPPORTED;
     bool          atleastOneStatisticsAvailable = false;
@@ -967,14 +982,9 @@ static eReturnValues create_JSON_File_For_SCSI_Device_Statistics(const tDevice* 
     if (rootNode == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    // Add version information
-    json_object_object_add(rootNode, "Device Statistics Version",
-                           json_object_new_string(DEVICE_STATISTICS_JSON_VERSION));
-
-    // Add general drive information
-    json_object_object_add(rootNode, "Model Name", json_object_new_string(device->drive_info.product_identification));
-    json_object_object_add(rootNode, "Serial Number", json_object_new_string(device->drive_info.serialNumber));
-    json_object_object_add(rootNode, "Firmware Version", json_object_new_string(device->drive_info.product_revision));
+    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
+                                    DEVICE_STATISTICS_JSON_VERSION);
+    create_Node_For_Drive_Information(rootNode, device);
 
     if (deviceStatictics->sasStatistics.writeErrorCountersSupported)
     {
@@ -1616,11 +1626,12 @@ static eReturnValues create_JSON_File_For_SCSI_Device_Statistics(const tDevice* 
                                                   "Phy Reset Problem Count", M_NULLPTR, false);
 
                         DECLARE_ZERO_INIT_ARRAY(char, portPhyNameName, 30);
-                        snprintf(portPhyNameName, 30, "Port:%" PRIu16 "-Phy:%" PRIu16 "",
-                                 deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID,
-                                 deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
-                                     .perPhy[phyIter]
-                                     .phyID);
+                        snprintf_err_handle(
+                            portPhyNameName, 30, "Port:%" PRIu16 "-Phy:%" PRIu16 "",
+                            deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID,
+                            deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
+                                .perPhy[phyIter]
+                                .phyID);
                         json_object_object_add(sasProtocolStatistics, portPhyNameName, portPhyNode);
                     }
                 }
@@ -1687,11 +1698,13 @@ static eReturnValues create_JSON_File_For_SCSI_Device_Statistics(const tDevice* 
     return ret;
 }
 
-eReturnValues create_JSON_File_For_Device_Statistics(const tDevice*             device,
-                                                     ptrDeviceStatistics        deviceStatictics,
-                                                     ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                     bool                       seagateDeviceStatisticsAvailable,
-                                                     char**                     jsonFormat)
+eReturnValues create_JSON_Output_For_Device_Statistics(const tDevice*             device,
+                                                       ptrDeviceStatistics        deviceStatictics,
+                                                       ptrSeagateDeviceStatistics seagateDeviceStatistics,
+                                                       bool                       seagateDeviceStatisticsAvailable,
+                                                       const char*                utilityName,
+                                                       const char*                buildVersion,
+                                                       char**                     jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1702,13 +1715,15 @@ eReturnValues create_JSON_File_For_Device_Statistics(const tDevice*             
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = create_JSON_File_For_ATA_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
-                                                         seagateDeviceStatisticsAvailable, jsonFormat);
+        ret = create_JSON_Output_For_ATA_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
+                                                           seagateDeviceStatisticsAvailable, utilityName, buildVersion,
+                                                           jsonFormat);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        ret = create_JSON_File_For_SCSI_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
-                                                          seagateDeviceStatisticsAvailable, jsonFormat);
+        ret = create_JSON_Output_For_SCSI_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
+                                                            seagateDeviceStatisticsAvailable, utilityName, buildVersion,
+                                                            jsonFormat);
     }
 
     return ret;
