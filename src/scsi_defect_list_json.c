@@ -170,7 +170,8 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*    device,
                                     defects->physical[iter].headNumber);
                 json_object_object_add(defectEntry, "Head", json_object_new_string(headValue));
 
-                if (defects->physical[iter].sectorNumber == UINT32_MAX)
+                if ((defects->format == AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR && defects->physical[iter].sectorNumber == UINT32_MAX)
+                || (defects->format == AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR && defects->physical[iter].sectorNumber == MAX_28BIT))
                 {
                     json_object_object_add(defectEntry, "Sector", json_object_new_string("Full Track"));
                 }
@@ -231,7 +232,8 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*    device,
                     json_object_object_add(firstDefectEntry, "Head", json_object_new_string(headValue));
 
                     DECLARE_ZERO_INIT_ARRAY(char, byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
-                    if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
+                    if ((defects->format == AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR && defects->bfi[iter].bytesFromIndex == UINT32_MAX)
+                    || (defects->format == AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR && defects->bfi[iter].bytesFromIndex == MAX_28BIT))
                     {
                         snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
                     }
@@ -264,7 +266,7 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*    device,
                                             defects->bfi[multiBitIter].headNumber);
                         json_object_object_add(subsequentDefectEntry, "Head", json_object_new_string(headValue));
 
-                        if (defects->bfi[multiBitIter].bytesFromIndex == MAX_28BIT)
+                        if (defects->bfi[multiBitIter].bytesFromIndex == UINT32_MAX)
                         {
                             snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
                         }
@@ -301,7 +303,7 @@ eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*    device,
                     json_object_object_add(defectEntry, "Head", json_object_new_string(headValue));
 
                     DECLARE_ZERO_INIT_ARRAY(char, byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
-                    if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
+                    if (defects->bfi[iter].bytesFromIndex == UINT32_MAX)
                     {
                         snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
                     }
