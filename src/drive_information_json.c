@@ -467,7 +467,7 @@ static eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_objec
 
     if (driveInfo->isWriteProtected)
     {
-        // printf("\tMedium is write protected!\n");
+        // print_str("\tMedium is write protected!\n");
         json_object_object_add(rootObject, "Medium is write protected", json_object_new_string("true"));
     }
 
