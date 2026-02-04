@@ -54,23 +54,19 @@ extern "C"
 #    define OPENSEA_JSONFORMAT_API
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 2, 3, 4, 5)
     M_PARAM_WO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_RO(5)
-    OPENSEA_JSONFORMAT_API void create_Node_For_Utility_Version(json_object* rootObject,
-                                                                const char*  utilityName,
-                                                                const char*  buildVersion,
-                                                                const char*  logName,
-                                                                const char*  jsonVersion);
-
-    M_NONNULL_PARAM_LIST(1, 2)
+    OPENSEA_JSONFORMAT_API void create_Node_For_Utility_Version(json_object* M_NONNULL rootObject,
+                                                                const char*  M_NONNULL utilityName,
+                                                                const char*  M_NONNULL buildVersion,
+                                                                const char*  M_NONNULL logName,
+                                                                const char*  M_NONNULL jsonVersion);
     M_PARAM_WO(1)
     M_PARAM_RO(2)
-    OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* rootObject, const tDevice* device);
-
+    OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* M_NONNULL rootObject, const tDevice* M_NONNULL device);
 #if defined(__cplusplus)
 }
 #endif

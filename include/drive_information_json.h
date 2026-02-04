@@ -22,16 +22,15 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Drive_Information(const tDevice* device,
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Drive_Information(const tDevice* M_NONNULL device,
                                                                                   bool           showChildInformation,
-                                                                                  const char*    utilityName,
-                                                                                  const char*    buildVersion,
-                                                                                  char**         jsonFormat);
+                                                                                  const char*    M_NONNULL utilityName,
+                                                                                  const char*    M_NONNULL buildVersion,
+                                                                                  char*M_NONNULL* M_NULLABLE           jsonFormat);
 #if defined(__cplusplus)
 }
 #endif

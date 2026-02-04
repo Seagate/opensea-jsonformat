@@ -23,17 +23,16 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 2, 3, 4)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*    device,
-                                                                                 ptrSCSIDefectList defects,
-                                                                                 const char*       utilityName,
-                                                                                 const char*       buildVersion,
-                                                                                 char**            jsonFormat);
+    OPENSEA_OPERATIONS_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*  M_NONNULL  device,
+                                                                                 ptrSCSIDefectList M_NONNULL defects,
+                                                                                 const char*      M_NONNULL utilityName,
+                                                                                 const char*      M_NONNULL buildVersion,
+                                                                                 char*M_NONNULL* M_NULLABLE           jsonFormat);
 
 #if defined(__cplusplus)
 }
