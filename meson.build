@@ -1,6 +1,18 @@
 # SPDX-License-Identifier: MPL-2.0
 project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '8.0.1', default_options: ['warning_level=2'])
 
+# =============================================================================
+# REPRODUCIBLE BUILD SUPPORT - Accept BUILD_TIMESTAMP from parent project
+# =============================================================================
+build_timestamp_opt = get_option('build_timestamp')
+if build_timestamp_opt != ''
+    message('opensea-jsonformat: Using BUILD_TIMESTAMP: "' + build_timestamp_opt + '"')
+    add_project_arguments('-DBUILD_TIMESTAMP="' + build_timestamp_opt + '"', language: 'c')
+else
+    message('opensea-jsonformat: No BUILD_TIMESTAMP provided, will use __DATE__')
+endif
+# =============================================================================
+
 c = meson.get_compiler('c')
 
 global_cpp_args = []

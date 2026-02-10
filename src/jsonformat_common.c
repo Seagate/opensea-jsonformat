@@ -33,7 +33,13 @@ void create_Node_For_Utility_Version(json_object* rootObject,
     json_object_object_add(jsonNode, "Utility Name", json_object_new_string(utilityName));
     json_object_object_add(jsonNode, "Build Version", json_object_new_string(buildVersion));
     DECLARE_ZERO_INIT_ARRAY(char, buildDateString, MAX_BUILD_DATE_STRING_LENGHT);
+#if defined(BUILD_TIMESTAMP)
+    // Use the date passed from the Makefile/Meson (Reproducible)
+    snprintf_err_handle(buildDateString, MAX_BUILD_DATE_STRING_LENGHT, "%s", BUILD_TIMESTAMP);
+#else
+    // Fallback to the compiler's current date (Not reproducible)
     snprintf_err_handle(buildDateString, MAX_BUILD_DATE_STRING_LENGHT, "%s", __DATE__);
+#endif
     json_object_object_add(jsonNode, "Build Date", json_object_new_string(buildDateString));
 
     struct tm logTime;
