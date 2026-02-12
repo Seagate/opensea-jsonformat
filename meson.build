@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '8.0.1', default_options: ['warning_level=2'])
+project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '8.0.1', default_options: ['warning_level=2', 'default_library=static'])
 
 # =============================================================================
 # REPRODUCIBLE BUILD SUPPORT - Accept BUILD_TIMESTAMP from parent project
@@ -109,7 +109,6 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wsequence-point',
         '-Wreturn-type',
         '-Wpointer-bool-conversion',
-        '-fvisibility=hidden',  #to work similarly to Window's DLL import/export
         '-Wmismatched-dealloc',
         '-Wfree-nonheap-object',
         '-fnullability',
@@ -178,7 +177,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         warning_flags += ['-mbranch-protection=standard']
     endif
 
-    linker_flags += ['-Wl,-z,nodlopen', '-Wl,-z,noexecstack', '-Wl,-z,relro', '-Wl,-z,now']
+    linker_flags += ['-Wl,-z,noexecstack', '-Wl,-z,relro', '-Wl,-z,now']
 
     #test if setting _FORTIFY_SOURCE higher than default generates a warning
     #this issue showed up on Rocky Linux 8 and we don't want to generate extra noise
@@ -318,7 +317,6 @@ src_files = [
 
 if target_machine.system() == 'windows'
     global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
-    global_cpp_args += ['-DSTATIC_OPENSEA_JSONFORMAT']
 endif
 
 incdir = include_directories('include')
@@ -335,6 +333,20 @@ jsonc = subproject(
 )
 jsonc_dep = jsonc.get_variable('jsonc_dep')
 
+defaultlib = get_option('default_library')
+
+build_c_args = []
+dep_c_args = []
+
+if defaultlib == 'static'
+    build_c_args += ['-DSTATIC_OPENSEA_JSONFORMAT']
+elif defaultlib == 'shared'
+    build_c_args += ['-DEXPORT_OPENSEA_JSONFORMAT']
+    dep_c_args += ['-DIMPORT_OPENSEA_JSONFORMAT']
+else
+    error('Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib)
+endif
+
 opensea_common = subproject('opensea-common')
 opensea_common_dep = opensea_common.get_variable('opensea_common_dep')
 
@@ -344,15 +356,16 @@ opensea_transport_dep = opensea_transport.get_variable('opensea_transport_dep')
 opensea_operations = subproject('opensea-operations')
 opensea_operations_dep = opensea_operations.get_variable('opensea_operations_dep')
 
-opensea_jsonformat_lib = static_library(
+opensea_jsonformat_lib = library(
     'opensea-jsonformat',
     src_files,
-    c_args: global_cpp_args,
+    c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep, opensea_operations_dep, jsonc_dep],
     include_directories: incdir,
+    gnu_symbol_visibility : 'hidden',
 )
 opensea_jsonformat_dep = declare_dependency(
     link_with: opensea_jsonformat_lib,
-    compile_args: global_cpp_args,
+    compile_args: global_cpp_args + dep_c_args,
     include_directories: incdir,
 )

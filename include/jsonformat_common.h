@@ -29,7 +29,7 @@ extern "C"
 // This is a bunch of stuff for creating opensea-jsonformat as a dynamic library (DLL in Windows or shared object in
 // linux)
 #if defined(OPENSEA_JSONFORMAT_API)
-#    undef(OPENSEA_JSONFORMAT_API)
+#    undef OPENSEA_JSONFORMAT_API
 #endif
 
 #if defined(EXPORT_OPENSEA_JSONFORMAT) && defined(STATIC_OPENSEA_JSONFORMAT)
