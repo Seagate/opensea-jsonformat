@@ -348,6 +348,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -365,6 +366,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -382,6 +384,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -400,6 +403,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -418,6 +422,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -436,6 +441,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -453,6 +459,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -471,6 +478,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -490,6 +498,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -511,6 +520,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -532,6 +542,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -554,6 +565,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -576,6 +588,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -598,6 +611,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -619,6 +633,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -641,6 +656,7 @@
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
