@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
-project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '8.0.1', default_options: ['warning_level=2', 'default_library=static'])
+# Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '1.1.0', default_options: ['warning_level=2', 'default_library=static'])
 
 # =============================================================================
 # REPRODUCIBLE BUILD SUPPORT - Accept BUILD_TIMESTAMP from parent project
