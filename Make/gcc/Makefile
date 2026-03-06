@@ -11,24 +11,24 @@
 # ******************************************************************************************
 
 # Hand Written Makefile (Edit with caution) -Muhammad
-# 
+#
 
 NAME=opensea-jsonformat
 FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
 MAJOR=1
-#Change the Minor version when new features are added. 
-MINOR=0
+#Change the Minor version when new features are added.
+MINOR=1
 #Change the patch version when only bug fixes are made.
 PATCH=0
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
-INC_DIR=-I../../include -I../../../json-c -I../../../json-c/build -I../../../opensea-operations/include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include  
+INC_DIR=-I../../include -I../../../json-c -I../../../json-c/build -I../../../opensea-operations/include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
 CC ?= gcc
 AR ?= ar
 
 #override CFLAGS = -Wall -c -fPIC -I.
-CFLAGS ?= -Wall -Wextra 
+CFLAGS ?= -Wall -Wextra
 CFLAGS += -c -fPIC -I.
 
 #NOTE -Wsign-conversion can be useful but warns way too much by default. Only enable it if debugging specific problems
@@ -38,7 +38,7 @@ ifneq (,$(findstring clang,$(COMPILER_VERSION)))
 	CFLAGS += -Wno-unknown-warning-option -Wcast-align=strict -Wvla -Wfloat-equal -Wnull-dereference -Wunused-const-variable \
 	-Wduplicated-cond -Wjump-misses-init -Wstringop-overflow -Wlogical-op -Wshift-overflow=2 -Wdouble-promotion -Wformat -Wformat-security \
 	-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
-else 
+else
 	ifneq (,$(findstring GCC,$(COMPILER_VERSION)))
 		#setup gcc specific warnings/flags
 		GCC_VERSION_STRING = $(shell $(CC) -dumpversion)
@@ -48,7 +48,7 @@ else
 		GCC_SUBMINOR = $(word 3,$(GCC_VER))
 		ifeq ($(GCC_MINOR),)
 			GCC_MINOR = 0
-		endif 
+		endif
 		ifeq ($(GCC_SUBMINOR),)
 			GCC_SUBMINOR = 0
 		endif
@@ -56,7 +56,7 @@ else
 		ifeq ($(shell test $(GCC_MAJOR) -gt 7; echo $$?),0)
 			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
 				CFLAGS += -Wcast-align=strict
-			else 
+			else
 				CFLAGS += -Wcast-align
 			endif
 		else
@@ -66,7 +66,7 @@ else
 		ifeq ($(shell test $(GCC_MAJOR) -gt 6; echo $$?),0)
 			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
 				CFLAGS += -Wshadow=compatible-local -Wstringop-overflow
-			else 
+			else
 				CFLAGS +=
 			endif
 		else
@@ -76,7 +76,7 @@ else
 		ifeq ($(shell test $(GCC_MAJOR) -gt 5; echo $$?),0)
 			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
 				CFLAGS += -Wnull-dereference -Wunused-const-variable -Wduplicated-cond -Wshift-overflow=2
-			else 
+			else
 				CFLAGS +=
 			endif
 		else
@@ -92,7 +92,7 @@ else
 			#as of 5.x.x, gnu11 is default
 			CFLAGS += -std=gnu99
 		endif
-		
+
 		CFLAGS += -Wvla -Wfloat-equal -Wjump-misses-init -Wlogical-op -Wdouble-promotion -Wformat -Wformat-security \
 			-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
 	else
@@ -107,7 +107,7 @@ LFLAGS ?= -Wall \
 		  ../../../opensea-operations/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-operations.a \
 		  ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a \
           ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a \
-		  ../../../json-c/build/libjson-c.a -lm 
+		  ../../../json-c/build/libjson-c.a -lm
 
 #AIX wants all linker libraries for the .so. Need libodm and libcfg in addition to the above to resolve all symbols
 ifeq ($(UNAME),AIX)
@@ -137,7 +137,7 @@ LIBS = lib$(NAME).a
 
 #-include $(DEPFILES)
 
-.PHONY: all 
+.PHONY: all
 
 all: clean mkoutputdir $(LIBS)
 

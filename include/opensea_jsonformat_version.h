@@ -24,7 +24,7 @@ extern "C"
 #define COMBINE_JSONFORMAT_VERSIONS(x, y, z)  COMBINE_JSONFORMAT_VERSIONS_(x, y, z)
 
 #define OPENSEA_JSONFORMAT_MAJOR_VERSION      1
-#define OPENSEA_JSONFORMAT_MINOR_VERSION      0
+#define OPENSEA_JSONFORMAT_MINOR_VERSION      1
 #define OPENSEA_JSONFORMAT_PATCH_VERSION      0
 
 #define OPENSEA_JSONFORMAT_VERSION                                                                                     \
