@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,9 +12,6 @@
 //
 // \file cdl_json.c
 // \brief This file defines types and functions related to the JSON-based output for Seagate CDL config.
-
-#include <json.h>
-#include <json_object.h>
 
 #include "cdl_json.h"
 #include "io_utils.h"
@@ -202,7 +199,7 @@ static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error writing in file!\n");
+                    print_str("Error writing in file!\n");
                 }
                 ret = ERROR_WRITING_FILE;
             }
@@ -211,14 +208,14 @@ static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error flushing data!\n");
+                    print_str("Error flushing data!\n");
                 }
                 ret = ERROR_WRITING_FILE;
             }
 
             if (SEC_FILE_SUCCESS != secure_Close_File(cdlJsonLog))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
 
             if (ret == SUCCESS)
@@ -263,14 +260,14 @@ static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("File path is not secure!\n");
+                print_str("File path is not secure!\n");
             }
         }
         else
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Error in opening the file!\n");
+                print_str("Error in opening the file!\n");
             }
         }
 
@@ -386,7 +383,7 @@ static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* devic
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error writing in file!\n");
+                    print_str("Error writing in file!\n");
                 }
                 ret = ERROR_WRITING_FILE;
             }
@@ -395,20 +392,20 @@ static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* devic
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error flushing data!\n");
+                    print_str("Error flushing data!\n");
                 }
                 ret = ERROR_WRITING_FILE;
             }
 
             if (SEC_FILE_SUCCESS != secure_Close_File(cdlJsonLog))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
 
             if (ret == SUCCESS)
             {
-                printf("\tCommand Duration Limit : Supported\n");
-                printf("\tCommand Duration Guideline : Supported\n");
+                print_str("\tCommand Duration Limit : Supported\n");
+                print_str("\tCommand Duration Guideline : Supported\n");
                 printf("\tCommand Duration Limit Minimum Limit (ns) : %llu\n", 500ULL); // TODO - read values from drive
                 printf("\tCommand Duration Limit Maximum Limit (ns) : %llu\n",
                        (500000000ULL * 500000000ULL)); // TODO - read values from drive
@@ -433,14 +430,14 @@ static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* devic
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("File path is not secure!\n");
+                print_str("File path is not secure!\n");
             }
         }
         else
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Error in opening the file!\n");
+                print_str("Error in opening the file!\n");
             }
         }
 
@@ -724,14 +721,14 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
                     }
                     else if (skipValidation)
                     {
-                        printf("Skipping validation for JSON file. The operation could fail, if values provided are "
+                        print_str("Skipping validation for JSON file. The operation could fail, if values provided are "
                                "not according to SPEC.\n");
                     }
                 }
                 else
                 {
                     // Invalid json file or parsing failure
-                    printf("Failure in parsing JSON file!\n");
+                    print_str("Failure in parsing JSON file!\n");
                     ret = VALIDATION_FAILURE;
                 }
             }
@@ -750,7 +747,7 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
         // parse json file
         if (SEC_FILE_SUCCESS != secure_Close_File(cdlJsonfile))
         {
-            printf("Error attempting to close file!\n");
+            print_str("Error attempting to close file!\n");
         }
     }
     else
@@ -1012,14 +1009,14 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device
                     }
                     else if (skipValidation)
                     {
-                        printf("Skipping validation for JSON file. The operation could fail, if values provided are "
+                        print_str("Skipping validation for JSON file. The operation could fail, if values provided are "
                                "not according to SPEC.\n");
                     }
                 }
                 else
                 {
                     // Invalid json file or parsing failure
-                    printf("Failure in parsing JSON file!\n");
+                    print_str("Failure in parsing JSON file!\n");
                     ret = VALIDATION_FAILURE;
                 }
             }
@@ -1038,7 +1035,7 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device
         // parse json file
         if (SEC_FILE_SUCCESS != secure_Close_File(cdlJsonfile))
         {
-            printf("Error attempting to close file!\n");
+            print_str("Error attempting to close file!\n");
         }
     }
     else

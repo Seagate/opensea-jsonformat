@@ -2,7 +2,7 @@
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,25 +11,40 @@
 # ******************************************************************************************
 
 # Hand Written Makefile (Edit with caution) -Muhammad
-#
+# 
 
 NAME=opensea-jsonformat
 FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
 MAJOR=1
-#Change the Minor version when new features are added.
-MINOR=1
+#Change the Minor version when new features are added. 
+MINOR=0
 #Change the patch version when only bug fixes are made.
 PATCH=0
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
-INC_DIR=-I../../include -I../../../json-c -I../../../json-c/build -I../../../opensea-operations/include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
-CC ?= gcc
-AR ?= ar
+INC_DIR=-I../../include -I../../../json-c -I../../../json-c/buildwin -I../../../opensea-operations/include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include  
 
-#override CFLAGS = -Wall -c -fPIC -I.
-CFLAGS ?= -Wall -Wextra
-CFLAGS += -c -fPIC -I.
+MYUNAME := $(shell uname -s)
+ifneq (,$(findstring Linux,$(MYUNAME)))
+	UNAME = MINGW64
+else ifneq (,$(findstring MINGW64,$(MYUNAME)))
+	UNAME = MINGW64
+endif
+
+ifneq (,$(findstring Linux,$(MYUNAME)))
+	CC = x86_64-w64-mingw32-gcc
+	AR = x86_64-w64-mingw32-ar
+else
+	CC = gcc
+	AR = ar
+endif
+
+#turning off format warnings because they are EVERYWHERE but only in minGW which is due to backwards compatibility warnings.
+#I tried using __USE_MINGW_ANSI_STDIO, but this didn't solve the problem either. - TJE
+#https://sourceforge.net/p/mingw-w64/mailman/mingw-w64-public/thread/20120411101049.GA4263%40glandium.org/#msg29128250
+CFLAGS ?= -Wall -Wextra -Wno-format
+CFLAGS += -c -fPIC -I. -std=gnu99
 
 #NOTE -Wsign-conversion can be useful but warns way too much by default. Only enable it if debugging specific problems
 COMPILER_VERSION := $(shell $(CC) --version)
@@ -38,7 +53,7 @@ ifneq (,$(findstring clang,$(COMPILER_VERSION)))
 	CFLAGS += -Wno-unknown-warning-option -Wcast-align=strict -Wvla -Wfloat-equal -Wnull-dereference -Wunused-const-variable \
 	-Wduplicated-cond -Wjump-misses-init -Wstringop-overflow -Wlogical-op -Wshift-overflow=2 -Wdouble-promotion -Wformat -Wformat-security \
 	-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
-else
+else 
 	ifneq (,$(findstring GCC,$(COMPILER_VERSION)))
 		#setup gcc specific warnings/flags
 		GCC_VERSION_STRING = $(shell $(CC) -dumpversion)
@@ -48,7 +63,7 @@ else
 		GCC_SUBMINOR = $(word 3,$(GCC_VER))
 		ifeq ($(GCC_MINOR),)
 			GCC_MINOR = 0
-		endif
+		endif 
 		ifeq ($(GCC_SUBMINOR),)
 			GCC_SUBMINOR = 0
 		endif
@@ -56,7 +71,7 @@ else
 		ifeq ($(shell test $(GCC_MAJOR) -gt 7; echo $$?),0)
 			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
 				CFLAGS += -Wcast-align=strict
-			else
+			else 
 				CFLAGS += -Wcast-align
 			endif
 		else
@@ -66,7 +81,7 @@ else
 		ifeq ($(shell test $(GCC_MAJOR) -gt 6; echo $$?),0)
 			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
 				CFLAGS += -Wshadow=compatible-local -Wstringop-overflow
-			else
+			else 
 				CFLAGS +=
 			endif
 		else
@@ -76,7 +91,7 @@ else
 		ifeq ($(shell test $(GCC_MAJOR) -gt 5; echo $$?),0)
 			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
 				CFLAGS += -Wnull-dereference -Wunused-const-variable -Wduplicated-cond -Wshift-overflow=2
-			else
+			else 
 				CFLAGS +=
 			endif
 		else
@@ -92,7 +107,7 @@ else
 			#as of 5.x.x, gnu11 is default
 			CFLAGS += -std=gnu99
 		endif
-
+		
 		CFLAGS += -Wvla -Wfloat-equal -Wjump-misses-init -Wlogical-op -Wdouble-promotion -Wformat -Wformat-security \
 			-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
 	else
@@ -103,15 +118,23 @@ else
 endif
 UNAME := $(shell uname -s)
 
-LFLAGS ?= -Wall \
-		  ../../../opensea-operations/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-operations.a \
-		  ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a \
-          ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a \
-		  ../../../json-c/build/libjson-c.a -lm
+LDFLAGS ?= -Wall
+LDLIBS = \
+		  ../../../opensea-operations/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-operations.a \
+          ../../../opensea-transport/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-transport.a \
+		  ../../../opensea-common/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-common.a \
+		  ../../../json-c/buildwin/libjson-c.a -lm 
+
+ifneq (,$(findstring MINGW64,$(UNAME)))
+	#BR note: pragma comment(lib,"Version.lib") is not supported by gcc, use the below supply the version.lib functions
+	LDFLAGS += -L/msys64/mingw64/x86_64-w64-mingw32/lib
+	LDLIBS += -lversion
+	LDLIBS += -lcfgmgr32
+endif
 
 #AIX wants all linker libraries for the .so. Need libodm and libcfg in addition to the above to resolve all symbols
 ifeq ($(UNAME),AIX)
-	LFLAGS += -lodm -lcfg
+	LDFLAGS += -lodm -lcfg
 endif
 
 LIB_SRC_FILES = \
@@ -127,7 +150,14 @@ LIB_SRC_FILES = \
 
 UNAME := $(shell uname)
 
-PROJECT_DEFINES += #-D_DEBUG
+PROJECT_DEFINES += -DSTATIC_OPENSEA_OPERATIONS -DSTATIC_OPENSEA_TRANSPORT
+PROJECT_DEFINES += -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE
+
+ifneq (,$(findstring MINGW64,$(UNAME)))
+	#BR note: trying different stuff during debugging
+	#BR note: -D_WIN32_WINNT=0x0601 fixes unknown Windows version in winioctl.h
+	# PROJECT_DEFINES += -D_WIN32_WINNT=0x0601
+endif
 
 #All of the source files have associated object files
 LIB_OBJ_FILES = $(LIB_SRC_FILES:.c=.o)
@@ -137,17 +167,17 @@ LIBS = lib$(NAME).a
 
 #-include $(DEPFILES)
 
-.PHONY: all
+.PHONY: all 
 
 all: clean mkoutputdir $(LIBS)
 
 opensea-libs:
-	$(MAKE) -C ../../../opensea-common/Make/gcc
-	$(MAKE) -C ../../../opensea-transport/Make/gcc
-	$(MAKE) -C ../../../opensea-operations/Make/gcc
+	$(MAKE) -C ../../../opensea-common/Make/gccWin -f Makefile.gccWin
+	$(MAKE) -C ../../../opensea-transport/Make/gccWin -f Makefile.gccWin
+	$(MAKE) -C ../../../opensea-operations/Make/gccWin -f Makefile.gccWin
 
 json-c:
-	../buildjsonc.sh build $(CC)
+	../buildjsonc.sh buildwin $(CC)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(PROJECT_DEFINES) $(INC_DIR) $< -o $@
@@ -155,8 +185,7 @@ json-c:
 $(LIBS): json-c $(LIB_OBJ_FILES) opensea-libs
 	rm -f $(FILE_OUTPUT_DIR)/$@
 	$(AR) cq $(FILE_OUTPUT_DIR)/$@ $(LIB_OBJ_FILES)
-	$(CC) -shared $(LIB_OBJ_FILES) $(LFLAGS) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
-	cd $(FILE_OUTPUT_DIR) && ln -sf lib$(NAME).so.$(VERSION) lib$(NAME).so
+	$(CC) -shared $(LIB_OBJ_FILES) $(LDFLAGS) $(LDLIBS) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
 
 clean:
 	rm -f $(FILE_OUTPUT_DIR)/lib$(NAME).a $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION) lib$(NAME).so *.o ../../src/*.o

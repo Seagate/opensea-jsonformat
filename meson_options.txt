@@ -1,0 +1,2 @@
+option('cc-suggest-attribute', type : 'boolean', value : false, description : 'Enable warnings where the compiler can suggest various attributes to be applied to functions for optimization and correctness.')
+option('build_timestamp', type: 'string', value: '', description: 'Build timestamp for reproducible builds (passed from parent project)')

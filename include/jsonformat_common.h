@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include <json.h>
+#include <json_object.h>
+
 #include "common_public.h"
 
 #if defined(__cplusplus)
@@ -26,7 +29,7 @@ extern "C"
 // This is a bunch of stuff for creating opensea-jsonformat as a dynamic library (DLL in Windows or shared object in
 // linux)
 #if defined(OPENSEA_JSONFORMAT_API)
-#    undef(OPENSEA_JSONFORMAT_API)
+#    undef OPENSEA_JSONFORMAT_API
 #endif
 
 #if defined(EXPORT_OPENSEA_JSONFORMAT) && defined(STATIC_OPENSEA_JSONFORMAT)
@@ -51,6 +54,19 @@ extern "C"
 #    define OPENSEA_JSONFORMAT_API
 #endif
 
+    M_PARAM_WO(1)
+    M_PARAM_RO(2)
+    M_PARAM_RO(3)
+    M_PARAM_RO(4)
+    M_PARAM_RO(5)
+    OPENSEA_JSONFORMAT_API void create_Node_For_Utility_Version(json_object* M_NONNULL rootObject,
+                                                                const char*  M_NONNULL utilityName,
+                                                                const char*  M_NONNULL buildVersion,
+                                                                const char*  M_NONNULL logName,
+                                                                const char*  M_NONNULL jsonVersion);
+    M_PARAM_WO(1)
+    M_PARAM_RO(2)
+    OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* M_NONNULL rootObject, const tDevice* M_NONNULL device);
 #if defined(__cplusplus)
 }
 #endif

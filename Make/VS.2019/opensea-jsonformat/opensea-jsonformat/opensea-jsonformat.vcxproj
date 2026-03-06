@@ -69,12 +69,25 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\cdl_json.h" />
     <ClInclude Include="..\..\..\..\include\device_statistics_json.h" />
+    <ClInclude Include="..\..\..\..\include\dst_json.h" />
+    <ClInclude Include="..\..\..\..\include\farm_json.h" />
     <ClInclude Include="..\..\..\..\include\jsonformat_common.h" />
     <ClInclude Include="..\..\..\..\include\opensea_jsonformat_version.h" />
+    <ClInclude Include="..\..\..\..\include\scan_json.h" />
+    <ClInclude Include="..\..\..\..\include\scsi_defect_list_json.h" />
+    <ClInclude Include="..\..\..\..\include\smart_attribute_json.h" />
+    <ClInclude Include="..\..\..\..\include\drive_information_json.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\cdl_json.c" />
     <ClCompile Include="..\..\..\..\src\device_statistics_json.c" />
+    <ClCompile Include="..\..\..\..\src\dst_json.c" />
+    <ClCompile Include="..\..\..\..\src\farm_json.c" />
+    <ClCompile Include="..\..\..\..\src\jsonformat_common.c" />
+    <ClCompile Include="..\..\..\..\src\scan_json.c" />
+    <ClCompile Include="..\..\..\..\src\scsi_defect_list_json.c" />
+    <ClCompile Include="..\..\..\..\src\smart_attribute_json.c" />
+    <ClCompile Include="..\..\..\..\src\drive_information_json.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -386,6 +399,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -403,6 +417,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -420,6 +435,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -454,6 +470,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -536,6 +553,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -557,6 +575,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -578,6 +597,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -620,6 +640,7 @@
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;STATIC_OPENSEA_JSONFORMAT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-operations\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor;..\..\..\..\..\json-c\build-$(VisualStudioVersion)-$(Platform_Actual)-$(Configuration);..\..\..\..\..\json-c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
