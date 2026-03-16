@@ -48,7 +48,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
     #      and it is not useful, so only add it while debugging.
     #NOTE: 4/4/2024 - adding flags from https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++
     warning_flags = [
-        #	'-Wcast-align=strict',
+        #       '-Wcast-align=strict',
         '-Wshadow=compatible-local',
         '-Wvla',
         '-Wfloat-equal',
@@ -238,7 +238,7 @@ elif c.get_id().contains('msvc')
         '/w14548',  # expression before comma has no effect; expected expression with side-effect
         '/w14549',  # 'operator1': operator before comma has no effect; did you intend 'operator2'?
         '/w14574',  # 'identifier' is defined to be '0': did you mean to use '#if identifier'?
-        '/w14605',  # 	'/Dmacro' specified on current command line, but was not specified when precompiled header was built
+        '/w14605',  #   '/Dmacro' specified on current command line, but was not specified when precompiled header was built
         '/w14555',  # expression has no effect; expected expression with side-effect
         '/w14774',  # 'string' : format string expected in argument number is not a string literal
         '/w14777',  # 'function' : format string 'string' requires an argument of type 'type1', but variadic argument number has type 'type2'
@@ -284,7 +284,7 @@ elif c.get_id().contains('msvc')
     ]
 
     #TODO: check compiler version to handle warnings that were off by default in earlier versions
-    #ex: C4431 (level 4)	missing type specifier - int assumed. Note: C no longer supports default-int
+    #ex: C4431 (level 4)        missing type specifier - int assumed. Note: C no longer supports default-int
     #    This was off by default in compilers before VS2012.
 elif c.get_id().contains('xlc')
     #This section is for IBM's xlc compiler and warning options it may need.
@@ -323,28 +323,48 @@ endif
 
 incdir = include_directories('include')
 
-# Try to find system json-c library first
+# Check if json-c was already provided by parent project
+# Try to get it without required=true first to avoid failure if parent hasn't set it up yet
 jsonc_dep = dependency('json-c', required: false)
-if jsonc_dep.found()
-    message('opensea-jsonformat: Using system json-c library (via pkg-config)')
-else
-    # Fallback: Try to find library directly without pkg-config
-    message('opensea-jsonformat: pkg-config not available, checking for library and headers')
-    jsonc_lib = c.find_library('json-c', required: false)
-    
-    # Check if headers are present (search standard system paths)
-    has_json_headers = c.has_header('json-c/json_object.h', required: false)
-    
-    if jsonc_lib.found() and has_json_headers
-        message('Using system json-c library (library and headers found)')
-        # Create a dependency from the found library with include paths
-        jsonc_dep = declare_dependency(
-            dependencies: jsonc_lib,
-            compile_args: ['-I/usr/include/json-c', '-I/usr/local/include/json-c']
-        )
+
+if not jsonc_dep.found()
+    message('opensea-jsonformat: json-c not found in parent project, using local detection')
+
+    # Determine whether to use system json-c or subproject
+    use_system_json = get_option('use_system_json')
+
+    if use_system_json
+        message('opensea-jsonformat: use_system_json=true: Attempting to detect system json-c library')
+
+        # Step 1: Try pkg-config
+        jsonc_dep = dependency('json-c', required: false)
+        if jsonc_dep.found()
+            message('opensea-jsonformat: Found system json-c via pkg-config')
+        else
+            # Step 2: Try find_library + has_header
+            message('opensea-jsonformat: pkg-config not available, trying find_library')
+            jsonc_lib = c.find_library('json-c', required: false)
+            has_json_headers = c.has_header('json-c/json_object.h', required: false)
+
+            if jsonc_lib.found() and has_json_headers
+                message('opensea-jsonformat: Found system json-c library and headers')
+                jsonc_dep = declare_dependency(
+                    dependencies: jsonc_lib,
+                    compile_args: ['-I/usr/include', '-I/usr/local/include']
+                )
+            else
+                message('opensea-jsonformat: System json-c not fully available, falling back to subproject')
+                jsonc_dep = disabler()
+            endif
+        endif
     else
-        message('opensea-jsonformat: System json-c library not found, building from subproject')
-        # Build json-c from subproject
+        message('opensea-jsonformat: use_system_json=false: Using bundled json-c subproject')
+        jsonc_dep = disabler()
+    endif
+
+    # Step 3: If system json-c not found/used, build from subproject
+    if not jsonc_dep.found()
+        message('opensea-jsonformat: Building json-c from subproject')
         jsonc = subproject(
             'json-c',
             default_options: [
@@ -357,6 +377,8 @@ else
         )
         jsonc_dep = jsonc.get_variable('jsonc_dep')
     endif
+else
+    message('opensea-jsonformat: Using json-c from parent project')
 endif
 
 defaultlib = get_option('default_library')
