@@ -335,14 +335,14 @@ if not jsonc_dep.found()
 
     if use_system_json
         message('opensea-jsonformat: use_system_json=true: Attempting to detect system json-c library')
-
+        
         # Step 1: Try pkg-config
         jsonc_dep = dependency('json-c', required: false)
         if jsonc_dep.found()
             message('opensea-jsonformat: Found system json-c via pkg-config')
         else
-            # Step 2: Try find_library + has_header
             message('opensea-jsonformat: pkg-config not available for json-c, trying find_library + header check')
+            # Step 2: Try find_library + has_header
             jsonc_lib = c.find_library('json-c', required: false)
             
             if jsonc_lib.found()
@@ -359,12 +359,12 @@ if not jsonc_dep.found()
                     )
                 else
                     error('opensea-jsonformat: json-c library found but headers not found!\n' +
-                          'Please install json-c\n' +
+                          'Please install json-c development headers\n' +
                           'OR use -Duse_system_json=false to build json-c from bundled subproject')
                 endif
             else
                 error('opensea-jsonformat: json-c library not found!\n' +
-                      'Please install json-c \n' +
+                      'Please install json-c development package\n' +
                       'OR use -Duse_system_json=false to build json-c from bundled subproject')
             endif
         endif
