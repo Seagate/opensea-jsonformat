@@ -124,16 +124,16 @@ static void create_Node_For_Recording_Type_From_QWord(json_object* node, const c
         {
             uint64_t recordingType = get_Farm_Qword_Data(valueQword);
             if ((recordingType & FARM_DRIVE_RECORDING_SMR) && (recordingType & FARM_DRIVE_RECORDING_CMR))
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "SMR, CMR");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "SMR, CMR");
             else if (recordingType & FARM_DRIVE_RECORDING_SMR)
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "SMR");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "SMR");
             else if (recordingType & FARM_DRIVE_RECORDING_CMR)
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "CMR");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "CMR");
             else
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "Invalid");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "Invalid");
         }
         else
-            snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "Invalid");
+            snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "Invalid");
         json_object_object_add(node, nodeName, json_object_new_string(value));
     }
 }
