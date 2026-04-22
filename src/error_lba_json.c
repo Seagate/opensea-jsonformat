@@ -106,11 +106,11 @@ eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberO
 }
 
 eReturnValues create_JSON_Output_For_Error_LBA(const tDevice* device, constPtrErrorLBA LBAs,uint16_t numberOfErrors,
-                                                const char* logPath, char** jsonFormat, const char* utilityName, const char* buildVersion)
+                                                char** jsonFormat, const char* utilityName, const char* buildVersion)
 {
     eReturnValues ret = SUCCESS;
 
-    if (LBAs == M_NULLPTR || numberOfErrors == 0 || logPath == M_NULLPTR)
+    if (LBAs == M_NULLPTR || numberOfErrors == 0)
     {
         return BAD_PARAMETER;
     }

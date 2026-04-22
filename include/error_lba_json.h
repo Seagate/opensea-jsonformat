@@ -38,7 +38,6 @@ extern "C"
     OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Error_LBA(const tDevice*  M_NONNULL  device,
                                                                           constPtrErrorLBA M_NONNULL LBAs,
                                                                           uint16_t                   numberOfErrors,
-                                                                          const char*    M_NONNULL   logPath,
                                                                           char*M_NONNULL* M_NULLABLE jsonFormat,
                                                                           const char*    M_NONNULL   utilityName,
                                                                           const char*    M_NONNULL   buildVersion);
