@@ -18,33 +18,19 @@
 #include "memory_safety.h"
 #include "secure_file.h"
 #include "string_utils.h"
+#include "io_utils.h"
 
+#define COMBINE_ERROR_LBA_JSON_VERSIONS_(x, y, z) #x "." #y "." #z
+#define COMBINE_ERROR_LBA_JSON_VERSIONS(x, y, z)  COMBINE_ERROR_LBA_JSON_VERSIONS_(x, y, z)
+
+#define ERROR_LBA_JSON_MAJOR_VERSION              1
+#define ERROR_LBA_JSON_MINOR_VERSION              0
+#define ERROR_LBA_JSON_PATCH_VERSION              0
+
+#define ERROR_LBA_JSON_VERSION                                                                                               \
+    COMBINE_ERROR_LBA_JSON_VERSIONS(ERROR_LBA_JSON_MAJOR_VERSION, ERROR_LBA_JSON_MINOR_VERSION, ERROR_LBA_JSON_PATCH_VERSION)
 #define MAX_TIME_UNIT_STRING_LENGHT 10
 
-static const char* get_Repair_Status_String(eRepairStatus status)
-{
-    const char* statusString = "Not Repaired";
-    switch (status)
-    {
-    case REPAIRED:
-        statusString = "Repaired";
-        break;
-    case REPAIR_FAILED:
-        statusString = "Repair Failed";
-        break;
-    case REPAIR_NOT_REQUIRED:
-        statusString = "Repair Not Required";
-        break;
-    case UNABLE_TO_REPAIR_ACCESS_DENIED:
-        statusString = "Access Denied";
-        break;
-    case NOT_REPAIRED:
-    default:
-        statusString = "Not Repaired";
-        break;
-    }
-    return statusString;
-}
 
 eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors,
                                          json_object* jObject)
@@ -79,7 +65,7 @@ eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberO
 
         // Get repair status string
         eRepairStatus status = LBAs[errorIter - 1].repairStatus;
-        const char* repairString = get_Repair_Status_String(status);
+        char* repairString = get_Repair_Status_String(status);
 
         // Check if access denied
         if (status == UNABLE_TO_REPAIR_ACCESS_DENIED)
@@ -119,7 +105,8 @@ eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberO
     return ret;
 }
 
-eReturnValues create_JSON_File_For_Error_LBA(constPtrErrorLBA LBAs, uint16_t numberOfErrors, const char* logPath)
+eReturnValues create_JSON_Output_For_Error_LBA(const tDevice* device, constPtrErrorLBA LBAs,uint16_t numberOfErrors,
+                                                const char* logPath, char** jsonFormat, const char* utilityName, const char* buildVersion)
 {
     eReturnValues ret = SUCCESS;
 
@@ -130,11 +117,12 @@ eReturnValues create_JSON_File_For_Error_LBA(constPtrErrorLBA LBAs, uint16_t num
 
     // Create a new JSON object
     json_object* rootObj = json_object_new_object();
+
     if (rootObj == M_NULLPTR)
-    {
-        print_str("Error in creating JSON object!\n");
         return MEMORY_FAILURE;
-    }
+
+    create_Node_For_Utility_Version(rootObj, utilityName, buildVersion, "LBA ERROR LIST", ERROR_LBA_JSON_VERSION);
+    create_Node_For_Drive_Information(rootObj, device);
 
     // Create the bad LBAs list in JSON format
     ret = create_JSON_LBA_Error_List(LBAs, numberOfErrors, rootObj);
@@ -146,16 +134,10 @@ eReturnValues create_JSON_File_For_Error_LBA(constPtrErrorLBA LBAs, uint16_t num
 
     // Convert JSON object to formatted string
     const char* jstr = json_object_to_json_string_ext(rootObj, JSON_C_TO_STRING_PRETTY);
-
-    // Write formatted JSON string to a file
-    ret = write_String_To_File(logPath, jstr);
-    if (ret == SUCCESS)
+     // copy the json output into string
+    if (asprintf(jsonFormat, "%s", jstr) < 0)
     {
-        printf("Successfully created JSON file for Error LBA list at %s.\n", logPath);
-    }
-    else
-    {
-        print_str("Error in writing the JSON string to the file!\n");
+        return MEMORY_FAILURE;
     }
 
     // Free the JSON object

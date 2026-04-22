@@ -10,8 +10,8 @@
 //
 // ******************************************************************************************
 //
-// \file error_lba.h
-// \brief This file defines types and functions related to the JSON-based output for printing Error LBA.
+// \file error_lba_json.h
+// \brief This file defines types and functions related to the JSON-based output for Error LBA.
 
 #pragma once
 
@@ -24,17 +24,24 @@ extern "C"
 #endif
 
     M_PARAM_RO(1)
-    M_PARAM_RO(2)
     M_PARAM_RO(3)
     OPENSEA_JSONFORMAT_API eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA M_NONNULL LBAs,
                                                                       uint16_t numberOfErrors,
                                                                       json_object* M_NONNULL jObject);
 
     M_PARAM_RO(1)
-    M_PARAM_RO(3)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_Error_LBA(constPtrErrorLBA M_NONNULL LBAs,
-                                                                          uint16_t numberOfErrors,
-                                                                          const char*    M_NONNULL logPath);
+    M_PARAM_RO(2)
+    M_PARAM_RO(4)
+    M_PARAM_WO(5)
+    M_PARAM_RO(6)
+    M_PARAM_RO(7)
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Error_LBA(const tDevice*  M_NONNULL  device,
+                                                                          constPtrErrorLBA M_NONNULL LBAs,
+                                                                          uint16_t                   numberOfErrors,
+                                                                          const char*    M_NONNULL   logPath,
+                                                                          char*M_NONNULL* M_NULLABLE jsonFormat,
+                                                                          const char*    M_NONNULL   utilityName,
+                                                                          const char*    M_NONNULL   buildVersion);
 
 #if defined(__cplusplus)
 }
