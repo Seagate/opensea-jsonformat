@@ -65,7 +65,7 @@ eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberO
 
         // Get repair status string
         eRepairStatus status = LBAs[errorIter - 1].repairStatus;
-        char* repairString = get_Repair_Status_String(status);
+        const char* repairString = get_Repair_Status_String(status);
 
         // Check if access denied
         if (status == UNABLE_TO_REPAIR_ACCESS_DENIED)

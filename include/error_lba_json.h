@@ -32,9 +32,8 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(4)
-    M_PARAM_WO(5)
+    M_PARAM_RO(5)
     M_PARAM_RO(6)
-    M_PARAM_RO(7)
     OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Error_LBA(const tDevice*  M_NONNULL  device,
                                                                           constPtrErrorLBA M_NONNULL LBAs,
                                                                           uint16_t                   numberOfErrors,
