@@ -315,6 +315,7 @@ src_files = [
     'src/scan_json.c',
     'src/scsi_defect_list_json.c',
     'src/smart_attribute_json.c',
+    'src/error_lba_json.c'
 ]
 
 if target_machine.system() == 'windows'
