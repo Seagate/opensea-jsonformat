@@ -28,11 +28,12 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(const tDevice*  M_NONNULL  device,
-                                                                                 ptrSCSIDefectList M_NONNULL defects,
-                                                                                 const char*      M_NONNULL utilityName,
-                                                                                 const char*      M_NONNULL buildVersion,
-                                                                                 char*M_NONNULL* M_NULLABLE           jsonFormat);
+    OPENSEA_OPERATIONS_API eReturnValues
+    create_JSON_Output_For_SCSI_Defect_List(const tDevice* M_NONNULL    device,
+                                            ptrSCSIDefectList M_NONNULL defects,
+                                            const char* M_NONNULL       utilityName,
+                                            const char* M_NONNULL       buildVersion,
+                                            char* M_NONNULL* M_NULLABLE jsonFormat);
 
 #if defined(__cplusplus)
 }

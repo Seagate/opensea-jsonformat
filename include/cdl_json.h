@@ -27,16 +27,16 @@ extern "C"
     M_PARAM_RO(2)
     M_PARAM_RO(3)
     OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
-                                                                           tCDLSettings*  M_NONNULL cdlSettings,
-                                                                           const char*    M_NONNULL logPath);
+                                                                           tCDLSettings* M_NONNULL  cdlSettings,
+                                                                           const char* M_NONNULL    logPath);
 
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_RO(3)
     OPENSEA_JSONFORMAT_API eReturnValues parse_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
-                                                                          tCDLSettings*  M_NONNULL cdlSettings,
-                                                                          const char*    M_NONNULL fileName,
-                                                                          bool           skipValidation);
+                                                                          tCDLSettings* M_NONNULL  cdlSettings,
+                                                                          const char* M_NONNULL    fileName,
+                                                                          bool                     skipValidation);
 
 #if defined(__cplusplus)
 }
