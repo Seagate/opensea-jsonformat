@@ -32,7 +32,7 @@ extern "C"
                                                                     ptrDstLogEntries M_NONNULL entries,
                                                                     const char* M_NONNULL      utilityName,
                                                                     const char* M_NONNULL      buildVersion,
-                                                                    char* M_NONNULL* M_NONNULL jsonFormat);
+                                                                    char* M_NONNULL* M_NULLABLE jsonFormat);
 
 #if defined(__cplusplus)
 }

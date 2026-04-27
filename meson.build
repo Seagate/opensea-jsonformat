@@ -1,5 +1,18 @@
 # SPDX-License-Identifier: MPL-2.0
-project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '8.0.1', default_options: ['warning_level=2'])
+# Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '1.1.0', default_options: ['warning_level=2', 'default_library=static'])
+
+# =============================================================================
+# REPRODUCIBLE BUILD SUPPORT - Accept BUILD_TIMESTAMP from parent project
+# =============================================================================
+build_timestamp_opt = get_option('build_timestamp')
+if build_timestamp_opt != ''
+    message('opensea-jsonformat: Using BUILD_TIMESTAMP: "' + build_timestamp_opt + '"')
+    add_project_arguments('-DBUILD_TIMESTAMP="' + build_timestamp_opt + '"', language: 'c')
+else
+    message('opensea-jsonformat: No BUILD_TIMESTAMP provided, will use __DATE__')
+endif
+# =============================================================================
 
 c = meson.get_compiler('c')
 
@@ -35,7 +48,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
     #      and it is not useful, so only add it while debugging.
     #NOTE: 4/4/2024 - adding flags from https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++
     warning_flags = [
-        #	'-Wcast-align=strict',
+        #       '-Wcast-align=strict',
         '-Wshadow=compatible-local',
         '-Wvla',
         '-Wfloat-equal',
@@ -97,10 +110,36 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wsequence-point',
         '-Wreturn-type',
         '-Wpointer-bool-conversion',
-        '-fvisibility=hidden',  #to work similarly to Window's DLL import/export
         '-Wmismatched-dealloc',
         '-Wfree-nonheap-object',
+        '-fnullability',
+        '-Wnullability', # Warnings for nullability annotations
+        '-Wnullability-completeness', # Warn if nullability annotations are incomplete
+        '-Wnullability-completeness-on-arrays', # Warn if nullability annotations are incomplete
+        # '-Wnullable-to-nonnull-conversion', # Basically warns so you have to cast to the correct nullability type. Not needed today -TJE
+        # '-Wswitch-enum', # too noisy for now - TJE
+        '-Walloc-zero',
+        '-Walloc-size',
+        '-Wcalloc-transposed-args',
+        '-Werror=alloca', # Do not allow use of the alloca function
+        '-Wstring-compare', # Helps detect when strcmp is used when the programmer likely meant to use strncmp
+        '-Wfortify-source' # Clang specific (at least for now) but enables additional diagnostics.
     ]
+
+    if get_option('cc-suggest-attribute')
+        warning_flags += [
+            '-Wsuggest-attribute=pure',
+            '-Wsuggest-attribute=const',
+            '-Wsuggest-attribute=noreturn',
+            '-Wsuggest-attribute=returns_nonnull',
+            '-Wmissing-noreturn',
+            '-Wsuggest-attribute=malloc',
+            '-Wsuggest-attribute=format',
+            '-Wmissing-format-attribute',
+            '-Wsuggest-attribute=cold',
+            '-fipa-pure-const',
+        ]
+    endif
 
     if c.get_id().contains('gcc') and c.version().version_compare('>=10.0')
         #only enable the sign conversion warning on versions 10 and up because it is way too noisy on earlier GCC versions than it is useful-TJE
@@ -140,7 +179,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         warning_flags += ['-mbranch-protection=standard']
     endif
 
-    linker_flags += ['-Wl,-z,nodlopen', '-Wl,-z,noexecstack', '-Wl,-z,relro', '-Wl,-z,now']
+    linker_flags += ['-Wl,-z,noexecstack', '-Wl,-z,relro', '-Wl,-z,now']
 
     #test if setting _FORTIFY_SOURCE higher than default generates a warning
     #this issue showed up on Rocky Linux 8 and we don't want to generate extra noise
@@ -199,7 +238,7 @@ elif c.get_id().contains('msvc')
         '/w14548',  # expression before comma has no effect; expected expression with side-effect
         '/w14549',  # 'operator1': operator before comma has no effect; did you intend 'operator2'?
         '/w14574',  # 'identifier' is defined to be '0': did you mean to use '#if identifier'?
-        '/w14605',  # 	'/Dmacro' specified on current command line, but was not specified when precompiled header was built
+        '/w14605',  #   '/Dmacro' specified on current command line, but was not specified when precompiled header was built
         '/w14555',  # expression has no effect; expected expression with side-effect
         '/w14774',  # 'string' : format string expected in argument number is not a string literal
         '/w14777',  # 'function' : format string 'string' requires an argument of type 'type1', but variadic argument number has type 'type2'
@@ -245,7 +284,7 @@ elif c.get_id().contains('msvc')
     ]
 
     #TODO: check compiler version to handle warnings that were off by default in earlier versions
-    #ex: C4431 (level 4)	missing type specifier - int assumed. Note: C no longer supports default-int
+    #ex: C4431 (level 4)        missing type specifier - int assumed. Note: C no longer supports default-int
     #    This was off by default in compilers before VS2012.
 elif c.get_id().contains('xlc')
     #This section is for IBM's xlc compiler and warning options it may need.
@@ -266,54 +305,107 @@ endif
 
 global_cpp_args = []
 
-if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
-    if c.version().version_compare('<5.0')
-        #4.7.4+ has C11 support, but c89 is the default standard so we need to change it.
-        if c.has_argument('-std=gnu11')
-            c_std = 'gnu11'
-            if meson.version().version_compare('<1.0.0')
-                add_project_arguments('-std=gnu11', language: 'c')
-            endif
-        elif c.has_argument('-std=gnu99')
-            #Add this argument to the list since C99 is a minimum required C compiler standard
-            c_std = 'gnu99'
-            if meson.version().version_compare('<1.0.0')
-                add_project_arguments('-std=gnu99', language: 'c')
-            endif
-        else
-            error('C99/GNU99 standard is required but was not able to be set!')
-        endif
-    endif
-endif
-
-src_files = ['src/cdl_json.c', 
-             'src/device_statistics_json.c',
-             'src/drive_information_json.c',
-             'src/dst_json.c',
-             'src/farm_json.c',
-             'src/jsonformat_common.c',
-             'src/scan_json.c',
-             'src/scsi_defect_list_json.c',
-             'src/smart_attribute_json.c']
+src_files = [
+    'src/cdl_json.c',
+    'src/device_statistics_json.c',
+    'src/drive_information_json.c',
+    'src/dst_json.c',
+    'src/farm_json.c',
+    'src/jsonformat_common.c',
+    'src/scan_json.c',
+    'src/scsi_defect_list_json.c',
+    'src/smart_attribute_json.c',
+]
 
 if target_machine.system() == 'windows'
     global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
-    global_cpp_args += ['-DSTATIC_OPENSEA_JSONFORMAT']
 endif
 
 incdir = include_directories('include')
 
-jsonc = subproject(
-    'json-c',
-    default_options: [
-        'default_library=static',
-        'build_apps=false',
-        'disable_extra_libs=true',
-        'disable_json_pointer=false',
-        'disable_json_patch=false',
-    ],
-)
-jsonc_dep = jsonc.get_variable('jsonc_dep')
+# Check if json-c was already provided by parent project
+# Try to get it without required=true first to avoid failure if parent hasn't set it up yet
+jsonc_dep = dependency('json-c', required: false)
+
+if not jsonc_dep.found()
+    message('opensea-jsonformat: json-c not found in parent project, using local detection')
+
+    # Determine whether to use system json-c or subproject
+    use_system_json = get_option('use_system_json')
+
+    if use_system_json
+        message('opensea-jsonformat: use_system_json=true: Attempting to detect system json-c library')
+        
+        # Step 1: Try pkg-config
+        jsonc_dep = dependency('json-c', required: false)
+        if jsonc_dep.found()
+            message('opensea-jsonformat: Found system json-c via pkg-config')
+        else
+            message('opensea-jsonformat: pkg-config not available for json-c, trying find_library + header check')
+            # Step 2: Try find_library + has_header
+            jsonc_lib = c.find_library('json-c', required: false)
+            
+            if jsonc_lib.found()
+                message('opensea-jsonformat: Found json-c library, checking for headers...')
+                # Check common header locations explicitly
+                has_json_headers = c.has_header('json-c/json_object.h', required: false) or \
+                                   c.has_header('json_object.h', required: false)
+                
+                if has_json_headers
+                    message('opensea-jsonformat: Found system json-c library and headers')
+                    jsonc_dep = declare_dependency(
+                        dependencies: jsonc_lib,
+                        compile_args: ['-I/usr/include', '-I/usr/local/include']
+                    )
+                else
+                    error('opensea-jsonformat: json-c library found but headers not found!\n' +
+                          'Please install json-c development headers\n' +
+                          'OR use -Duse_system_json=false to build json-c from bundled subproject')
+                endif
+            else
+                error('opensea-jsonformat: json-c library not found!\n' +
+                      'Please install json-c development package\n' +
+                      'OR use -Duse_system_json=false to build json-c from bundled subproject')
+            endif
+        endif
+    endif
+
+    # If use_system_json=false (default), build from subproject
+    if not jsonc_dep.found()
+        if use_system_json
+            error('opensea-jsonformat: Failed to find system json-c. Please install development headers or set -Duse_system_json=false')
+        endif
+        
+        message('opensea-jsonformat: use_system_json=false: Building json-c from subproject')
+        jsonc = subproject(
+            'json-c',
+            default_options: [
+                'default_library=static',
+                'build_apps=false',
+                'disable_extra_libs=true',
+                'disable_json_pointer=false',
+                'disable_json_patch=false',
+            ],
+        )
+        jsonc_dep = jsonc.get_variable('jsonc_dep')
+    endif
+else
+    message('opensea-jsonformat: Using json-c from parent project')
+endif
+
+defaultlib = get_option('default_library')
+
+build_c_args = []
+dep_c_args = []
+
+if defaultlib == 'static'
+    build_c_args += ['-DSTATIC_OPENSEA_JSONFORMAT']
+elif defaultlib == 'shared'
+    build_c_args += ['-DEXPORT_OPENSEA_JSONFORMAT']
+    dep_c_args += ['-DIMPORT_OPENSEA_JSONFORMAT']
+else
+    error('Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib)
+endif
 
 opensea_common = subproject('opensea-common')
 opensea_common_dep = opensea_common.get_variable('opensea_common_dep')
@@ -324,15 +416,16 @@ opensea_transport_dep = opensea_transport.get_variable('opensea_transport_dep')
 opensea_operations = subproject('opensea-operations')
 opensea_operations_dep = opensea_operations.get_variable('opensea_operations_dep')
 
-opensea_jsonformat_lib = static_library(
+opensea_jsonformat_lib = library(
     'opensea-jsonformat',
     src_files,
-    c_args: global_cpp_args,
+    c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep, opensea_operations_dep, jsonc_dep],
     include_directories: incdir,
+    gnu_symbol_visibility : 'hidden',
 )
 opensea_jsonformat_dep = declare_dependency(
     link_with: opensea_jsonformat_lib,
-    compile_args: global_cpp_args,
+    compile_args: global_cpp_args + dep_c_args,
     include_directories: incdir,
 )
