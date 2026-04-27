@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -124,16 +124,16 @@ static void create_Node_For_Recording_Type_From_QWord(json_object* node, const c
         {
             uint64_t recordingType = get_Farm_Qword_Data(valueQword);
             if ((recordingType & FARM_DRIVE_RECORDING_SMR) && (recordingType & FARM_DRIVE_RECORDING_CMR))
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "SMR, CMR");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "SMR, CMR");
             else if (recordingType & FARM_DRIVE_RECORDING_SMR)
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "SMR");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "SMR");
             else if (recordingType & FARM_DRIVE_RECORDING_CMR)
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "CMR");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "CMR");
             else
-                snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "Invalid");
+                snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "Invalid");
         }
         else
-            snprintf_err_handle(value, MAX_UINT64_TO_DEC_STRING_LENGHT, "Invalid");
+            snprintf_err_handle(value, MAX_RECORDING_TYPE_STRING_LENGHT, "Invalid");
         json_object_object_add(node, nodeName, json_object_new_string(value));
     }
 }
@@ -1154,7 +1154,7 @@ static void create_Node_For_FARM_Error_Statistics_Page(json_object*         root
     }
 }
 
-static void create_Node_For_FARM_Enviornmental_Statistics_Page(json_object*               rootObject,
+static void create_Node_For_FARM_Environmental_Statistics_Page(json_object*               rootObject,
                                                                farmEnvironmentStatistics* environment,
                                                                eFARMDriveInterface        driveInterface,
                                                                uint64_t                   timeRestrictedRangeMS)
@@ -1452,7 +1452,7 @@ eReturnValues create_JSON_Output_For_FARM(const tDevice* device,
         create_Node_For_FARM_Drive_Information_Page(rootNode, &farmdata->driveinfo, farmInterface);
         create_Node_For_FARM_Workload_Statistics_Page(rootNode, &farmdata->workload, timeRestrictedRangeMS);
         create_Node_For_FARM_Error_Statistics_Page(rootNode, &farmdata->error, headCount, farmInterface);
-        create_Node_For_FARM_Enviornmental_Statistics_Page(rootNode, &farmdata->environment, farmInterface,
+        create_Node_For_FARM_Environmental_Statistics_Page(rootNode, &farmdata->environment, farmInterface,
                                                            timeRestrictedRangeMS);
         create_Node_For_FARM_Reliability_Statistics_Page(rootNode, &farmdata->reliability, headCount, farmInterface,
                                                          timeRestrictedRangeMS);

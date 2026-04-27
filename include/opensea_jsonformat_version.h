@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ extern "C"
 #define COMBINE_JSONFORMAT_VERSIONS(x, y, z)  COMBINE_JSONFORMAT_VERSIONS_(x, y, z)
 
 #define OPENSEA_JSONFORMAT_MAJOR_VERSION      1
-#define OPENSEA_JSONFORMAT_MINOR_VERSION      0
+#define OPENSEA_JSONFORMAT_MINOR_VERSION      1
 #define OPENSEA_JSONFORMAT_PATCH_VERSION      0
 
 #define OPENSEA_JSONFORMAT_VERSION                                                                                     \

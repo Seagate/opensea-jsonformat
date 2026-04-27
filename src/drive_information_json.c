@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -467,7 +467,7 @@ static eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_objec
 
     if (driveInfo->isWriteProtected)
     {
-        // printf("\tMedium is write protected!\n");
+        // print_str("\tMedium is write protected!\n");
         json_object_object_add(rootObject, "Medium is write protected", json_object_new_string("true"));
     }
 
@@ -1615,7 +1615,7 @@ static eReturnValues create_JSON_Node_For_NVMe_Device_Information(json_object*  
 
     // number of firmware slots
     DECLARE_ZERO_INIT_ARRAY(char, slots, MAX_UINT8_TO_DEC_STRING_LENGTH);
-    snprintf_err_handle(slots, MAX_DOUBLE_TO_DEC_STRING_LENGHT, "%" PRIu8,
+    snprintf_err_handle(slots, MAX_UINT8_TO_DEC_STRING_LENGTH, "%" PRIu8,
                         driveInfo->controllerData.numberOfFirmwareSlots);
     json_object_object_add(nvmeInfoObject, "Number of Firmware Slots", json_object_new_string(slots));
 

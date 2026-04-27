@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,6 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 2, 5, 6)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(3)
@@ -32,13 +31,13 @@ extern "C"
     M_PARAM_RO(6)
     M_PARAM_WO(7)
     OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_Output_For_Device_Statistics(const tDevice*             device,
-                                             ptrDeviceStatistics        deviceStatictics,
-                                             ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                             bool                       seagateDeviceStatisticsAvailable,
-                                             const char*                utilityName,
-                                             const char*                buildVersion,
-                                             char**                     jsonFormat);
+    create_JSON_Output_For_Device_Statistics(const tDevice* M_NONNULL              device,
+                                             ptrDeviceStatistics M_NONNULL         deviceStatictics,
+                                             ptrSeagateDeviceStatistics M_NULLABLE seagateDeviceStatistics,
+                                             bool                                  seagateDeviceStatisticsAvailable,
+                                             const char* M_NONNULL                 utilityName,
+                                             const char* M_NONNULL                 buildVersion,
+                                             char* M_NONNULL* M_NULLABLE jsonFormat);
 
 #if defined(__cplusplus)
 }
