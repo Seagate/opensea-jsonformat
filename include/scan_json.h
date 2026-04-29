@@ -25,11 +25,11 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API void create_JSON_Output_For_Scan(unsigned int     flags,
-                                                            eVerbosityLevels scanVerbosity,
-                                                            const char*   M_NONNULL   utilityName,
-                                                            const char*   M_NONNULL   buildVersion,
-                                                            char*M_NONNULL* M_NULLABLE          jsonFormat);
+    OPENSEA_JSONFORMAT_API void create_JSON_Output_For_Scan(unsigned int          flags,
+                                                            eVerbosityLevels      scanVerbosity,
+                                                            const char* M_NONNULL utilityName,
+                                                            const char* M_NONNULL buildVersion,
+                                                            char* M_NONNULL* M_NULLABLE jsonFormat);
 
 #if defined(__cplusplus)
 }

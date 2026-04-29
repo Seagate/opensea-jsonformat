@@ -31,13 +31,13 @@ extern "C"
     M_PARAM_RO(6)
     M_PARAM_WO(7)
     OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_Output_For_Device_Statistics(const tDevice*        M_NONNULL     device,
-                                             ptrDeviceStatistics    M_NONNULL    deviceStatictics,
+    create_JSON_Output_For_Device_Statistics(const tDevice* M_NONNULL              device,
+                                             ptrDeviceStatistics M_NONNULL         deviceStatictics,
                                              ptrSeagateDeviceStatistics M_NULLABLE seagateDeviceStatistics,
-                                             bool                       seagateDeviceStatisticsAvailable,
-                                             const char*            M_NONNULL    utilityName,
-                                             const char*            M_NONNULL    buildVersion,
-                                             char*M_NONNULL* M_NULLABLE           jsonFormat);
+                                             bool                                  seagateDeviceStatisticsAvailable,
+                                             const char* M_NONNULL                 utilityName,
+                                             const char* M_NONNULL                 buildVersion,
+                                             char* M_NONNULL* M_NULLABLE jsonFormat);
 
 #if defined(__cplusplus)
 }
