@@ -30,11 +30,11 @@
 #define MAX_DRIVE_NODE_NAME_LENGTH      21
 #define MAX_UINT32_TO_DEC_STRING_LENGHT 11
 
-void create_JSON_Output_For_Scan(unsigned int     flags,
-                                 eVerbosityLevels scanVerbosity,
-                                 const char*      utilityName,
-                                 const char*      buildVersion,
-                                 char**           jsonFormat)
+OPENSEA_JSONFORMAT_API void create_JSON_Output_For_Scan(unsigned int          flags,
+                                                        eVerbosityLevels      scanVerbosity,
+                                                        const char* M_NONNULL utilityName,
+                                                        const char* M_NONNULL buildVersion,
+                                                        char**                jsonFormat)
 {
     json_object* rootNode = json_object_new_object();
 

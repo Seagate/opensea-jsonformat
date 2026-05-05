@@ -1398,11 +1398,16 @@ static void create_Node_For_FARM_Reliability_Statistics_Page(json_object*       
     }
 }
 
-eReturnValues create_JSON_Output_For_FARM(const tDevice* device,
-                                          farmLogData*   farmdata,
-                                          const char*    utilityName,
-                                          const char*    buildVersion,
-                                          char**         jsonFormat)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+M_PARAM_RO(3)
+M_PARAM_RO(4)
+M_PARAM_WO(5)
+OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_FARM(const tDevice* M_NONNULL device,
+                                                                 farmLogData* M_NONNULL   farmdata,
+                                                                 const char* M_NONNULL    utilityName,
+                                                                 const char* M_NONNULL    buildVersion,
+                                                                 char**                   jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1411,7 +1416,7 @@ eReturnValues create_JSON_Output_For_FARM(const tDevice* device,
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE || get_Device_DriveType(device) == SCSI_DRIVE)
     {
         json_object* rootNode = json_object_new_object();
 

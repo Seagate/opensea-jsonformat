@@ -253,7 +253,7 @@ static void create_JSON_Nodes_For_DST_Log_Entries(json_object*     rootObject,
             json_object* logEntry = json_object_new_object();
 
             char* testName = M_REINTERPRET_CAST(char*, safe_calloc(MAX_TEST_NAME_LENGTH, sizeof(char)));
-            get_Test_Name(device->drive_info.drive_type, entries->dstEntry[iter].selfTestRun, &testName);
+            get_Test_Name(get_Device_DriveType(device), entries->dstEntry[iter].selfTestRun, &testName);
             json_object_object_add(logEntry, "Test", json_object_new_string(testName));
             safe_free(&testName);
 
@@ -264,7 +264,7 @@ static void create_JSON_Nodes_For_DST_Log_Entries(json_object*     rootObject,
 
             char* executionStatusValue =
                 M_REINTERPRET_CAST(char*, safe_calloc(MAX_DST_EXECUTION_STATUS_STRING_LENGTH, sizeof(char)));
-            get_Execution_Status_Name(device->drive_info.drive_type, entries->dstEntry[iter], &executionStatusValue);
+            get_Execution_Status_Name(get_Device_DriveType(device), entries->dstEntry[iter], &executionStatusValue);
             json_object_object_add(logEntry, "Execution Status", json_object_new_string(executionStatusValue));
             safe_free(&executionStatusValue);
 
@@ -279,13 +279,13 @@ static void create_JSON_Nodes_For_DST_Log_Entries(json_object*     rootObject,
             DECLARE_ZERO_INIT_ARRAY(char, checkPointValue, MAX_UINT8_TO_HEX_STRING_LENGHT);
             snprintf_err_handle(checkPointValue, MAX_UINT8_TO_HEX_STRING_LENGHT, "%" PRIX8 "",
                                 entries->dstEntry[iter].checkPointByte);
-            if (device->drive_info.drive_type == NVME_DRIVE)
+            if (get_Device_DriveType(device) == NVME_DRIVE)
                 json_object_object_add(logEntry, "Segment Number", json_object_new_string(checkPointValue));
             else
                 json_object_object_add(logEntry, "Checkpoint", json_object_new_string(checkPointValue));
 
             DECLARE_ZERO_INIT_ARRAY(char, senseInfoValue, MAX_SENSE_INFO_STRING_LENGTH);
-            if (device->drive_info.drive_type == NVME_DRIVE)
+            if (get_Device_DriveType(device) == NVME_DRIVE)
             {
 #define NVM_STATUS_CODE_STR_LEN 10
                 DECLARE_ZERO_INIT_ARRAY(char, sctVal, NVM_STATUS_CODE_STR_LEN);
@@ -330,11 +330,16 @@ static void create_JSON_Nodes_For_DST_Log_Entries(json_object*     rootObject,
     json_object_object_add(rootObject, "DST Log", dstLog);
 }
 
-eReturnValues create_JSON_Output_For_DST(const tDevice*   device,
-                                         ptrDstLogEntries entries,
-                                         const char*      utilityName,
-                                         const char*      buildVersion,
-                                         char**           jsonFormat)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+M_PARAM_RO(3)
+M_PARAM_RO(4)
+M_PARAM_WO(5)
+OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_DST(const tDevice* M_NONNULL   device,
+                                                                ptrDstLogEntries M_NONNULL entries,
+                                                                const char* M_NONNULL      utilityName,
+                                                                const char* M_NONNULL      buildVersion,
+                                                                char**                     jsonFormat)
 {
     if (entries == M_NULLPTR)
         return BAD_PARAMETER;

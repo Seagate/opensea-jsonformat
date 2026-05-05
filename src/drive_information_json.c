@@ -1697,7 +1697,7 @@ static eReturnValues create_JSON_Node_For_NVMe_Device_Information(json_object*  
         char*  mUtilizationUnit = &mUtilizationUnits[0];
         char*  utilizationUnit  = &utilizationUnits[0];
         double nvmMUtilization  = C_CAST(double, driveInfo->namespaceData.namespaceUtilization *
-                                                    driveInfo->namespaceData.formattedLBASizeBytes);
+                                                     driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmUtilization   = nvmMUtilization;
         metric_Unit_Convert(&nvmMUtilization, &mUtilizationUnit);
         capacity_Unit_Convert(&nvmUtilization, &utilizationUnit);
@@ -1887,11 +1887,11 @@ static eReturnValues create_JSON_Node_For_Parent_And_Child_Information(json_obje
     return ret;
 }
 
-eReturnValues create_JSON_Output_For_Drive_Information(const tDevice* device,
-                                                       bool           showChildInformation,
-                                                       const char*    utilityName,
-                                                       const char*    buildVersion,
-                                                       char**         jsonFormat)
+OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Drive_Information(const tDevice* M_NONNULL device,
+                                                                              bool showChildInformation,
+                                                                              const char* M_NONNULL utilityName,
+                                                                              const char* M_NONNULL buildVersion,
+                                                                              char**                jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device == M_NULLPTR)

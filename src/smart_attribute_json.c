@@ -333,14 +333,14 @@ static eReturnValues create_JSON_Output_For_ATA(const tDevice*        device,
     return SUCCESS;
 }
 
-eReturnValues create_JSON_Output_For_SMART_Attributes(const tDevice* device,
-                                                      const char*    utilityName,
-                                                      const char*    buildVersion,
-                                                      char**         jsonFormat)
+OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SMART_Attributes(const tDevice* M_NONNULL device,
+                                                                             const char* M_NONNULL    utilityName,
+                                                                             const char* M_NONNULL    buildVersion,
+                                                                             char**                   jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ataSMARTAnalyzedData* smartAnalyzedData =
             M_REINTERPRET_CAST(ataSMARTAnalyzedData*, safe_calloc(1, sizeof(ataSMARTAnalyzedData)));

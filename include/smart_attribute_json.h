@@ -27,9 +27,9 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_WO(4)
     OPENSEA_JSONFORMAT_API eReturnValues
-    create_JSON_Output_For_SMART_Attributes(const tDevice* M_NONNULL device,
-                                            const char* M_NONNULL    utilityName,
-                                            const char* M_NONNULL    buildVersion,
+    create_JSON_Output_For_SMART_Attributes(const tDevice* M_NONNULL    device,
+                                            const char* M_NONNULL       utilityName,
+                                            const char* M_NONNULL       buildVersion,
                                             char* M_NONNULL* M_NULLABLE jsonFormat);
 
 #if defined(__cplusplus)

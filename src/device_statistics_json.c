@@ -1698,13 +1698,14 @@ static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(const tDevice
     return ret;
 }
 
-eReturnValues create_JSON_Output_For_Device_Statistics(const tDevice*             device,
-                                                       ptrDeviceStatistics        deviceStatictics,
-                                                       ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                       bool                       seagateDeviceStatisticsAvailable,
-                                                       const char*                utilityName,
-                                                       const char*                buildVersion,
-                                                       char**                     jsonFormat)
+OPENSEA_JSONFORMAT_API eReturnValues
+create_JSON_Output_For_Device_Statistics(const tDevice* M_NONNULL              device,
+                                         ptrDeviceStatistics M_NONNULL         deviceStatictics,
+                                         ptrSeagateDeviceStatistics M_NULLABLE seagateDeviceStatistics,
+                                         bool                                  seagateDeviceStatisticsAvailable,
+                                         const char* M_NONNULL                 utilityName,
+                                         const char* M_NONNULL                 buildVersion,
+                                         char**                                jsonFormat)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1713,13 +1714,13 @@ eReturnValues create_JSON_Output_For_Device_Statistics(const tDevice*           
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = create_JSON_Output_For_ATA_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
                                                            seagateDeviceStatisticsAvailable, utilityName, buildVersion,
                                                            jsonFormat);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = create_JSON_Output_For_SCSI_Device_Statistics(device, deviceStatictics, seagateDeviceStatistics,
                                                             seagateDeviceStatisticsAvailable, utilityName, buildVersion,

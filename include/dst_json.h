@@ -28,12 +28,11 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_DST(const tDevice* M_NONNULL   device,
-                                                                    ptrDstLogEntries M_NONNULL entries,
-                                                                    const char* M_NONNULL      utilityName,
-                                                                    const char* M_NONNULL      buildVersion,
+    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_DST(const tDevice* M_NONNULL    device,
+                                                                    ptrDstLogEntries M_NONNULL  entries,
+                                                                    const char* M_NONNULL       utilityName,
+                                                                    const char* M_NONNULL       buildVersion,
                                                                     char* M_NONNULL* M_NULLABLE jsonFormat);
-
 #if defined(__cplusplus)
 }
 #endif

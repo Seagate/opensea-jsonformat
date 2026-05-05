@@ -450,15 +450,20 @@ static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* devic
     return ret;
 }
 
-eReturnValues create_JSON_File_For_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings, const char* logPath)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+M_PARAM_RO(3)
+OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                       tCDLSettings* M_NONNULL  cdlSettings,
+                                                                       const char* M_NONNULL    logPath)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = create_ATA_JSON_File_For_CDL_Settings(device, cdlSettings, logPath);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = create_SCSI_JSON_File_For_CDL_Settings(device, cdlSettings, logPath);
     }
@@ -466,10 +471,10 @@ eReturnValues create_JSON_File_For_CDL_Settings(const tDevice* device, tCDLSetti
     return ret;
 }
 
-static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
-                                                          tCDLSettings*  cdlSettings,
-                                                          const char*    fileName,
-                                                          bool           skipValidation)
+static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
+                                                          tCDLSettings*            cdlSettings,
+                                                          const char*              fileName,
+                                                          bool                     skipValidation)
 {
     eReturnValues ret = SUCCESS;
 
@@ -722,7 +727,7 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
                     else if (skipValidation)
                     {
                         print_str("Skipping validation for JSON file. The operation could fail, if values provided are "
-                               "not according to SPEC.\n");
+                                  "not according to SPEC.\n");
                     }
                 }
                 else
@@ -1010,7 +1015,7 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device
                     else if (skipValidation)
                     {
                         print_str("Skipping validation for JSON file. The operation could fail, if values provided are "
-                               "not according to SPEC.\n");
+                                  "not according to SPEC.\n");
                     }
                 }
                 else
@@ -1053,18 +1058,21 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device
     return ret;
 }
 
-eReturnValues parse_JSON_File_For_CDL_Settings(const tDevice* device,
-                                               tCDLSettings*  cdlSettings,
-                                               const char*    fileName,
-                                               bool           skipValidation)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+M_PARAM_RO(3)
+OPENSEA_JSONFORMAT_API eReturnValues parse_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                      tCDLSettings* M_NONNULL  cdlSettings,
+                                                                      const char* M_NONNULL    fileName,
+                                                                      bool                     skipValidation)
 {
     eReturnValues ret = SUCCESS;
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = parse_ATA_JSON_File_For_CDL_Settings(device, cdlSettings, fileName, skipValidation);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = parse_SCSI_JSON_File_For_CDL_Settings(device, cdlSettings, fileName, skipValidation);
     }

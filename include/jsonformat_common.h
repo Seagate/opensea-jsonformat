@@ -64,12 +64,10 @@ extern "C"
                                                                 const char* M_NONNULL  buildVersion,
                                                                 const char* M_NONNULL  logName,
                                                                 const char* M_NONNULL  jsonVersion);
-
     M_PARAM_WO(1)
     M_PARAM_RO(2)
     OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* M_NONNULL   rootObject,
                                                                   const tDevice* M_NONNULL device);
-
 #if defined(__cplusplus)
 }
 #endif
