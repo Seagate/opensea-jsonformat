@@ -40,22 +40,31 @@ OPENSEA_JSONFORMAT_API void create_Node_For_Utility_Version(json_object* M_NONNU
     DECLARE_ZERO_INIT_ARRAY(char, buildDateString, MAX_BUILD_DATE_STRING_LENGHT);
 #if defined(BUILD_TIMESTAMP)
     // Use the date passed from the Makefile/Meson (Reproducible)
-    snprintf_err_handle(buildDateString, MAX_BUILD_DATE_STRING_LENGHT, "%s", BUILD_TIMESTAMP);
+    if (0 != safe_strcpy(buildDateString, MAX_BUILD_DATE_STRING_LENGHT, BUILD_TIMESTAMP))
+    {
+        perror("Error copying build date for output. Likely truncation");
+    }
 #else
     // Fallback to the compiler's current date (Not reproducible)
-    snprintf_err_handle(buildDateString, MAX_BUILD_DATE_STRING_LENGHT, "%s", __DATE__);
+    if (0 != safe_strcpy(buildDateString, MAX_BUILD_DATE_STRING_LENGHT, __DATE__))
+    {
+        perror("Error copying build date for output. Likely truncation");
+    }
 #endif
     json_object_object_add(jsonNode, "Build Date", json_object_new_string(buildDateString));
 
     struct tm logTime;
-    safe_memset(&logTime, sizeof(struct tm), 0, sizeof(struct tm));
+    M_INITIALIZE_STRUCTURE(&logTime, sizeof(struct tm));
     time_t currentTime = time(NULL);
     DECLARE_ZERO_INIT_ARRAY(char, currentTimeString, CURRENT_TIME_STRING_LENGTH);
     strftime(currentTimeString, CURRENT_TIME_STRING_LENGTH, "%Y%m%dT%H%M%S", safe_localtime(&currentTime, &logTime));
     json_object_object_add(jsonNode, "Run as Date", json_object_new_string(currentTimeString));
 
     DECLARE_ZERO_INIT_ARRAY(char, logNameString, MAX_LOG_NAME_STRING_LENGHT);
-    snprintf_err_handle(logNameString, MAX_LOG_NAME_STRING_LENGHT, "%s JSON Version", logName);
+    if (0 != safe_strcpy(logNameString, MAX_LOG_NAME_STRING_LENGHT, logName))
+    {
+        perror("Error copying log name for output. Likely truncation");
+    }
     json_object_object_add(jsonNode, logNameString, json_object_new_string(jsonVersion));
 
     json_object_object_add(rootObject, "Utility Information", jsonNode);

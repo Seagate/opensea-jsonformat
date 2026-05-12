@@ -1029,25 +1029,40 @@ static eReturnValues create_JSON_Node_For_SAS_Sata_Device_Information(json_objec
             switch (driveInfo->lowCurrentSpinupEnabled)
             {
             case SEAGATE_LOW_CURRENT_SPINUP_STATE_LOW:
-                snprintf_err_handle(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH, "Enabled");
+                if (0 != safe_strcpy(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH, "Enabled")) M_UNLIKELY
+                {
+                    perror("Error copying low current spinup value for JSON output (likely truncation)");
+                }
                 break;
             case SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT:
-                snprintf_err_handle(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH, "Disabled");
+                if (0 != safe_strcpy(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH, "Disabled")) M_UNLIKELY
+                {
+                    perror("Error copying low current spinup value for JSON output (likely truncation)");
+                }
                 break;
             case SEAGATE_LOW_CURRENT_SPINUP_STATE_ULTRA_LOW:
-                snprintf_err_handle(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH, "Ultra Low Enabled");
+                if (0 != safe_strcpy(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH, "Ultra Low Enabled")) M_UNLIKELY
+                {
+                    perror("Error copying low current spinup value for JSON output (likely truncation)");
+                }
                 break;
             default:
-                snprintf_err_handle(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH,
+                if (0 > snprintf_err_handle(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH,
                                     "Unknown/Invalid state: %" PRIX16,
-                                    C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
+                                    C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled)))
+                                    {
+                                        perror("Error copying low current spinup unknown value for JSON output (likely truncation)");
+                                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH, "%s",
-                                driveInfo->lowCurrentSpinupEnabled > 0 ? "Enabled" : "Disabled");
+            if (0 != safe_strcpy(lowCurrentSpinupValue, MAX_STRING_LOW_CURRENT_SPINUP_LENGTH,
+                                driveInfo->lowCurrentSpinupEnabled > 0 ? "Enabled" : "Disabled")) M_UNLIKELY
+                                {
+                                    perror("Error copying low current spinup value for JSON output (likely truncation)");
+                                }
         }
 
         json_object_object_add(rootObject, "Low Current Spinup", json_object_new_string(lowCurrentSpinupValue));

@@ -226,13 +226,19 @@ OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(con
                     json_object* firstDefectEntry = json_object_new_object();
 
                     DECLARE_ZERO_INIT_ARRAY(char, cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
-                    snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
-                                        defects->defect[iter].bfi.cylinderNumber);
+                    if (0 > snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                        defects->defect[iter].bfi.cylinderNumber))
+                                        {
+                                            perror("Error setting cylinder number for defect");
+                                        }
                     json_object_object_add(firstDefectEntry, "Cylinder", json_object_new_string(cylinderValue));
 
                     DECLARE_ZERO_INIT_ARRAY(char, headValue, MAX_UINT8_TO_DEC_STRING_LENGHT);
-                    snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
-                                        defects->defect[iter].bfi.headNumber);
+                    if (0 > snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                        defects->defect[iter].bfi.headNumber))
+                                        {
+                                            perror("Error setting head number for defect");
+                                        }
                     json_object_object_add(firstDefectEntry, "Head", json_object_new_string(headValue));
 
                     DECLARE_ZERO_INIT_ARRAY(char, byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
@@ -241,12 +247,18 @@ OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(con
                         (defects->format == AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR &&
                          defects->defect[iter].bfi.bytesFromIndex == MAX_28BIT))
                     {
-                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
+                        if (0 != safe_strcpy(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "Full Track"))
+                        {
+                            perror("Error setting bytes from index defect length (full track)");
+                        }
                     }
                     else
                     {
-                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
-                                            defects->defect[iter].bfi.bytesFromIndex);
+                        if (0 > snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                            defects->defect[iter].bfi.bytesFromIndex))
+                        {
+                            perror("Error setting bytes from index defect length");
+                        }
                     }
                     json_object_object_add(firstDefectEntry, "Bytes From Index",
                                            json_object_new_string(byteIndexValue));
@@ -263,13 +275,19 @@ OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(con
                         // create defect node
                         json_object* subsequentDefectEntry = json_object_new_object();
 
-                        snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
-                                            defects->defect[multiBitIter].bfi.cylinderNumber);
+                        if (0 > snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                            defects->defect[multiBitIter].bfi.cylinderNumber))
+                                            {
+                                                perror("Error setting formatted data for BFI cylinder number");
+                                            }
                         json_object_object_add(subsequentDefectEntry, "Cylinder",
                                                json_object_new_string(cylinderValue));
 
-                        snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
-                                            defects->defect[multiBitIter].bfi.headNumber);
+                        if (0 > snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                            defects->defect[multiBitIter].bfi.headNumber))
+                                            {
+                                                perror("Error setting formatted data for BFI head number");
+                                            }
                         json_object_object_add(subsequentDefectEntry, "Head", json_object_new_string(headValue));
 
                         if ((defects->format == AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR &&
@@ -277,12 +295,18 @@ OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(con
                             (defects->format == AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR &&
                              defects->defect[multiBitIter].bfi.bytesFromIndex == MAX_28BIT))
                         {
-                            snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
+                            if (0 != safe_strcpy(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "Full Track")) M_UNLIKELY
+                            {
+                                perror("Error setting bytes from index defect length (full track)");
+                            }
                         }
                         else
                         {
-                            snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
-                                                defects->defect[multiBitIter].bfi.bytesFromIndex);
+                            if (0 > snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                                defects->defect[multiBitIter].bfi.bytesFromIndex))
+                            {
+                                perror("Error setting bytes from index defect length");
+                            }
                         }
                         json_object_object_add(subsequentDefectEntry, "Bytes From Index",
                                                json_object_new_string(byteIndexValue));
@@ -302,13 +326,19 @@ OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(con
                     json_object* defectEntry = json_object_new_object();
 
                     DECLARE_ZERO_INIT_ARRAY(char, cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
-                    snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
-                                        defects->defect[iter].bfi.cylinderNumber);
+                    if (0 > snprintf_err_handle(cylinderValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                        defects->defect[iter].bfi.cylinderNumber))
+                                        {
+                                            perror("Error setting formatted data for BFI cylinder number");
+                                        }
                     json_object_object_add(defectEntry, "Cylinder", json_object_new_string(cylinderValue));
 
                     DECLARE_ZERO_INIT_ARRAY(char, headValue, MAX_UINT8_TO_DEC_STRING_LENGHT);
-                    snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
-                                        defects->defect[iter].bfi.headNumber);
+                    if (0 > snprintf_err_handle(headValue, MAX_UINT8_TO_DEC_STRING_LENGHT, "%" PRIu8 "",
+                                        defects->defect[iter].bfi.headNumber))
+                                        {
+                                            perror("Error setting formatted data for BFI head number");
+                                        }
                     json_object_object_add(defectEntry, "Head", json_object_new_string(headValue));
 
                     DECLARE_ZERO_INIT_ARRAY(char, byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
@@ -317,12 +347,18 @@ OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_SCSI_Defect_List(con
                         (defects->format == AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR &&
                          defects->defect[iter].bfi.bytesFromIndex == MAX_28BIT))
                     {
-                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%s", "Full Track");
+                        if (0 != safe_strcpy(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "Full Track")) M_UNLIKELY
+                        {
+perror("Error setting bytes from index defect length (full track)");
+                        }
                     }
                     else
                     {
-                        snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
-                                            defects->defect[iter].bfi.bytesFromIndex);
+                        if (0 > snprintf_err_handle(byteIndexValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "",
+                                            defects->defect[iter].bfi.bytesFromIndex))
+                                            {
+                                                perror("Error setting bytes from index defect length");
+                                            }
                     }
                     json_object_object_add(defectEntry, "Bytes From Index", json_object_new_string(byteIndexValue));
 

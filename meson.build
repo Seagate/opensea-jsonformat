@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
-project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '1.1.0', default_options: ['warning_level=2', 'default_library=static'])
+project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '1.1.0', meson_version: '>=0.50.0', default_options: ['warning_level=2', 'default_library=static'])
 
 # =============================================================================
 # REPRODUCIBLE BUILD SUPPORT - Accept BUILD_TIMESTAMP from parent project
@@ -17,22 +17,15 @@ endif
 c = meson.get_compiler('c')
 
 global_cpp_args = []
-deps = []
 
 if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
     if c.version().version_compare('<5.0')
-        #4.7.4+ has C11 support, but c89 is the default standard so we need to change it.
+        # 4.7.4+ has C11 support, but c89 is the default standard so we need to change it.
         if c.has_argument('-std=gnu11')
-            c_std = 'gnu11'
-            if meson.version().version_compare('<1.0.0')
-                add_project_arguments('-std=gnu11', language: 'c')
-            endif
+            add_project_arguments('-std=gnu11', language: 'c')
         elif c.has_argument('-std=gnu99')
-            #Add this argument to the list since C99 is a minimum required C compiler standard
-            c_std = 'gnu99'
-            if meson.version().version_compare('<1.0.0')
-                add_project_arguments('-std=gnu99', language: 'c')
-            endif
+            # Add this argument to the list since C99 is a minimum required C compiler standard
+            add_project_arguments('-std=gnu99', language: 'c')
         else
             error('C99/GNU99 standard is required but was not able to be set!')
         endif
@@ -272,8 +265,11 @@ elif c.get_id().contains('msvc')
         warning_flags += '/QIntel-jcc-erratum'
     endif
 
+    # If this MSVC version supports /std:c17, force C17 mode. MSVC defaults to a
+    # pre-C99 dialect without this flag, which means _Generic and other C11/C17
+    # features are unavailable even though the compiler supports them.
     if c.has_argument('/std:c17')
-        c_std = 'c17'
+        warning_flags += '/std:c17'
     endif
 
     linker_flags += [
@@ -336,7 +332,7 @@ if not jsonc_dep.found()
 
     if use_system_json
         message('opensea-jsonformat: use_system_json=true: Attempting to detect system json-c library')
-        
+
         # Step 1: Try pkg-config
         jsonc_dep = dependency('json-c', required: false)
         if jsonc_dep.found()
@@ -345,13 +341,12 @@ if not jsonc_dep.found()
             message('opensea-jsonformat: pkg-config not available for json-c, trying find_library + header check')
             # Step 2: Try find_library + has_header
             jsonc_lib = c.find_library('json-c', required: false)
-            
+
             if jsonc_lib.found()
                 message('opensea-jsonformat: Found json-c library, checking for headers...')
                 # Check common header locations explicitly
-                has_json_headers = c.has_header('json-c/json_object.h', required: false) or \
-                                   c.has_header('json_object.h', required: false)
-                
+                has_json_headers = c.has_header('json-c/json_object.h', required: false) or c.has_header('json_object.h', required: false)
+
                 if has_json_headers
                     message('opensea-jsonformat: Found system json-c library and headers')
                     jsonc_dep = declare_dependency(
@@ -376,7 +371,7 @@ if not jsonc_dep.found()
         if use_system_json
             error('opensea-jsonformat: Failed to find system json-c. Please install development headers or set -Duse_system_json=false')
         endif
-        
+
         message('opensea-jsonformat: use_system_json=false: Building json-c from subproject')
         jsonc = subproject(
             'json-c',

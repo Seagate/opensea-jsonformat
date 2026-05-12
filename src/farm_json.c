@@ -193,20 +193,45 @@ static void create_Node_For_Bool_From_QWord(json_object* node,
             if (get_Farm_Qword_Data(valueQword) > 0)
             {
                 if (trueString != M_NULLPTR)
-                    snprintf_err_handle(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "%s", trueString);
+                    {
+                        if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, trueString)) M_UNLIKELY
+                        {
+                            perror("Error coping FARM bool string for JSON output");
+                        }
+                    }
                 else
-                    snprintf_err_handle(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "true");
+                    {
+                        if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "true")) M_UNLIKELY
+                        {
+                            perror("Error coping FARM bool string for JSON output");
+                        }
+                    }
             }
             else
             {
                 if (falseString != M_NULLPTR)
-                    snprintf_err_handle(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "%s", falseString);
+                    {
+                        if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, falseString)) M_UNLIKELY
+                        {
+                            perror("Error coping FARM bool string for JSON output");
+                        }
+                    }
                 else
-                    snprintf_err_handle(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "false");
+                    {
+                        if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "false")) M_UNLIKELY
+                        {
+                            perror("Error coping FARM bool string for JSON output");
+                        }
+                    }
             }
         }
         else
-            snprintf_err_handle(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "Invalid");
+            {
+                if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGHT, "Invalid")) M_UNLIKELY
+                {
+                    perror("Error coping FARM bool string for JSON output");
+                }
+            }
         json_object_object_add(node, nodeName, json_object_new_string(value));
     }
 }

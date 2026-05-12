@@ -72,17 +72,30 @@ static void create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
         {
             uint64_t timeInMinutes = C_CAST(uint64_t, theStatistic.statisticsDataValue);
             if (!theStatistic.isTimeStampsInMinutes)
+            {
                 timeInMinutes *= UINT64_C(60);
-            snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu64 " minutes", timeInMinutes);
+            }
+            if (0 > snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu64 " minutes", timeInMinutes))
+            {
+                perror("Error formatting value string for time in minutes");
+            }
         }
         else
         {
-            snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu32 "",
-                                theStatistic.statisticsDataValue);
+            if (0 > snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu32 "",
+                                theStatistic.statisticsDataValue))
+                                {
+                                    perror("Error formatting value string for time");
+                                }
         }
     }
     else
-        snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%s", "Not Avaliable");
+    {
+        if (0 != safe_strcpy(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "Not Avaliable"))
+        {
+            perror("Error copying string to valueString");
+        }
+    }
 
     json_object_object_add(statisticsNode, statisticName, json_object_new_string(valueString));
 }
@@ -164,11 +177,17 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 {
                     double workloadUtilization = C_CAST(double, theStatistic.statisticValue);
                     workloadUtilization *= 0.01; // convert to fractional percentage
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%%", workloadUtilization);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%%", workloadUtilization))
+                    {
+                        perror("Error formatting value string for Workload Utilization");
+                    }
                 }
                 else
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", ">655.34%%");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, ">655.34%"))
+                    {
+                        perror("Error copying value string for Workload Utilization");
+                    }
                 }
                 break;
 
@@ -184,28 +203,46 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                     DECLARE_ZERO_INIT_ARRAY(char, utilizationUsageRateString, 10);
                     if (utilizationUsageRate == 255)
                     {
-                        snprintf_err_handle(utilizationUsageRateString, 10, "%s", ">254%%");
+                        if (0 != safe_strcpy(utilizationUsageRateString, 10, ">254%")) M_UNLIKELY
+                        {
+                            perror("Error copying utilization usage rate string");
+                        }
                     }
                     else
                     {
-                        snprintf_err_handle(utilizationUsageRateString, 10, "%" PRIu8 "%%", utilizationUsageRate);
+                        if (0 > snprintf_err_handle(utilizationUsageRateString, 10, "%" PRIu8 "%%", utilizationUsageRate))
+                        {
+                            perror("Error formatting utilization usage rate string");
+                        }
                     }
 
                     DECLARE_ZERO_INIT_ARRAY(char, rateBasisString, 25);
                     switch (rateBasis)
                     {
                     case 0: // since manufacture
-                        snprintf_err_handle(rateBasisString, 25, "%s", "since manufacture");
+                        if (0 != safe_strcpy(rateBasisString, 25, "since manufacture")) M_UNLIKELY
+                        {
+                            perror("Error copying rate basis string for Utilization Usage Rate");
+                        }
                         break;
                     case 4: // since power on reset
-                        snprintf_err_handle(rateBasisString, 25, "%s", "since power on reset");
+                        if (0 != safe_strcpy(rateBasisString, 25, "since power on reset")) M_UNLIKELY
+                        {
+                            perror("Error copying rate basis string for Utilization Usage Rate");
+                        }
                         break;
                     case 8: // power on hours
-                        snprintf_err_handle(rateBasisString, 25, "%s", "for POH");
+                        if (0 != safe_strcpy(rateBasisString, 25, "for POH")) M_UNLIKELY
+                        {
+                            perror("Error copying rate basis string for Utilization Usage Rate");
+                        }
                         break;
                     case 0xF: // undetermined
                     default:
-                        snprintf_err_handle(rateBasisString, 25, "%s", "undetermined");
+                        if (0 != safe_strcpy(rateBasisString, 25, "undetermined")) M_UNLIKELY
+                        {
+                            perror("Error copying rate basis string for Utilization Usage Rate");
+                        }
                         break;
                     }
 
@@ -215,26 +252,38 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 break;
 
                 case 0x10: // invalid due to insufficient info
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s",
-                                        "Invalid - insufficient info collected");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT,
+                                        "Invalid - insufficient info collected")) M_UNLIKELY
+                                        {
+                                            perror("Error copying value string for Utilization Usage Rate");
+                                        }
                     break;
 
                 case 0x81: // unreasonable due to date and time timestamp
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s",
-                                        "Unreasonable due to date and time timestamp");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT,
+                                        "Unreasonable due to date and time timestamp")) M_UNLIKELY
+                                        {
+                                            perror("Error copying value string for Utilization Usage Rate");
+                                        }
                     break;
 
                 case 0xFF:
                 default: // invalid for unknown reason
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Invalid for unknown reason");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Invalid for unknown reason")) M_UNLIKELY
+                    {
+                        perror("Error copying value string for Utilization Usage Rate");
+                    }
                     break;
                 }
             }
             break;
 
             case STATISTICS_TYPE_TEMPERATURE:
-                snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
-                                    C_CAST(int8_t, theStatistic.statisticValue));
+                if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
+                                    C_CAST(int8_t, theStatistic.statisticValue)))
+                {
+                    perror("Error formatting temperature statistic for JSON output");
+                }
                 break;
 
             case STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP:
@@ -259,20 +308,29 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                     }
 
                     convert_Seconds_To_Displayable_Time(statisticValue, &years, &days, &hours, &minutes, &seconds);
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
                                         "%" PRIu8 " years %" PRIu16 " days %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8
                                         " seconds",
-                                        years, days, hours, minutes, seconds);
+                                        years, days, hours, minutes, seconds))
+                                        {
+                                            perror("Error formatting time statistic for JSON output");
+                                        }
                 }
                 else
                 {
                     if (statisticsType == STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP)
                     {
-                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "0 milliseconds");
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "0 milliseconds"))
+                        {
+                            perror("Error copying zero milliseconds string for JSON output");
+                        }
                     }
                     else
                     {
-                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "0 minutes");
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "0 minutes"))
+                        {
+                            perror("Error copying zero minutes string for JSON output");
+                        }
                     }
                 }
                 break;
@@ -280,7 +338,10 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
             case STATISTICS_TYPE_SATA_RESOURCE_AVAILABILITY:
             {
                 double fractionAvailable = C_CAST(double, M_Word0(theStatistic.statisticValue)) / 65535.0;
-                snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%% Available", fractionAvailable);
+                if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%% Available", fractionAvailable))
+                {
+                    perror("Error formatting SATA resource availability for JSON output");
+                }
             }
             break;
 
@@ -289,13 +350,19 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 uint8_t resourceValue = M_Byte0(theStatistic.statisticValue);
                 if (/* resourceValue >= 0 && */ resourceValue <= 0x7F)
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Within nominal bounds (%" PRIX8 "h)",
-                                        resourceValue);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Within nominal bounds (%" PRIX8 "h)",
+                                        resourceValue))
+                                        {
+                                            perror("Error formatting SATA random write resource used for JSON output");
+                                        }
                 }
                 else
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Exceeds nominal bounds (%" PRIX8 "h)",
-                                        resourceValue);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Exceeds nominal bounds (%" PRIX8 "h)",
+                                        resourceValue))
+                                        {
+                                            perror("Error formatting SATA random write resource used for JSON output");
+                                        }
                 }
             }
             break;
@@ -304,17 +371,29 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 switch (theStatistic.statisticValue)
                 {
                 case 0:
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Volatile");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Volatile"))
+                    {
+                        perror("Error copying SCSI non-volatile time \"Volatile\" string for JSON output");
+                    }
                     break;
                 case 1:
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Nonvolatile for unknown time");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile for unknown time"))
+                    {
+                        perror("Error copying SCSI non-volatile time \"Nonvolatile for unknown time\" string for JSON output");
+                    }
                     break;
                 case 0xFFFFFF:
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Nonvolatile indefinitely");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile indefinitely"))
+                    {
+                        perror("Error copying SCSI non-volatile time \"Nonvolatile indefinitely\" string for JSON output");
+                    }
                     break;
                 default: // time in minutes
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile for %" PRIu64 "minutes",
-                                        theStatistic.statisticValue);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile for %" PRIu64 "minutes",
+                                        theStatistic.statisticValue))
+                    {
+                        perror("Error formatting SCSI non-volatile time for JSON output");
+                    }
                     break;
                 }
                 break;
@@ -333,11 +412,17 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 week[2] = '\0';
                 if (strcmp(year, "    ") == 0 && strcmp(week, "  ") == 0)
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Not set");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Not set"))
+                    {
+                        perror("Error copying SCSI date \"Not set\" string for JSON output");
+                    }
                 }
                 else
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Week %s, %s", week, year);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Week %s, %s", week, year))
+                    {
+                        perror("Error formatting SCSI date for JSON output");
+                    }
                 }
             }
             break;
@@ -352,40 +437,67 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 switch (exponent)
                 {
                 case 1: // deci
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "deci seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "deci seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 case 2: // centi
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "centi seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "centi seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 case 3: // milli
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "milli seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "milli seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 case 6: // micro
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "micro seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "micro seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 case 9: // nano
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "nano seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "nano seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 case 12: // pico
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "pico seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "pico seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 case 15: // femto
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "femto seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "femto seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 case 18: // atto
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "atto seconds");
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
+                                        "atto seconds"))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 default:
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " Unknown exponent value",
-                                        integer);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " Unknown exponent value",
+                                        integer))
+                                        {
+                                            perror("Error formatting time statistic with unit for JSON output");
+                                        }
                     break;
                 }
             }
@@ -396,17 +508,26 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 {
                     if (isLimit)
                     {
-                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No Temperature Limit");
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No Temperature Limit")) M_UNLIKELY
+                        {
+                            perror("Error copying temperature statistic string value for JSON output");
+                        }
                     }
                     else
                     {
-                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No Valid Temperature");
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No Valid Temperature")) M_UNLIKELY
+                        {
+                            perror("Error copying temperature statistic string value for JSON output");
+                        }
                     }
                 }
                 else
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
-                                        C_CAST(int8_t, theStatistic.statisticValue));
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
+                                        C_CAST(int8_t, theStatistic.statisticValue)))
+                    {
+                        perror("Error formatting temperature statistic value for JSON output (likely truncation)");
+                    }
                 }
                 break;
 
@@ -420,16 +541,25 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 {
                     if (isLimit)
                     {
-                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No relative humidity limit");
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No relative humidity limit")) M_UNLIKELY
+                        {
+                            perror("Error copying humidity statistic string value for JSON output");
+                        }
                     }
                     else
                     {
-                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "No valid relative humidity");
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No valid relative humidity")) M_UNLIKELY
+                        {
+                            perror("Error copying humidity statistic string value for JSON output");
+                        }
                     }
                 }
                 else
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Reserved value reported");
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Reserved value reported")) M_UNLIKELY
+                    {
+                        perror("Error copying humidity statistic string value for JSON output");
+                    }
                 }
                 break;
 
@@ -437,20 +567,29 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
             default:
                 if (statisticUnit != M_NULLPTR)
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 " %s",
-                                        theStatistic.statisticValue, statisticUnit);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 " %s",
+                                        theStatistic.statisticValue, statisticUnit))
+                                        {
+                                            perror("Error formatting humidity statistic value for JSON output (likely truncation)");
+                                        }
                 }
                 else
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 "",
-                                        theStatistic.statisticValue);
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 "",
+                                        theStatistic.statisticValue))
+                                        {
+                                            perror("Error formatting humidity statistic value for JSON output (likely truncation)");
+                                        }
                 }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s", "Invalid");
+            if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Invalid")) M_UNLIKELY
+            {
+                perror("Error copying humidity statistic string value for JSON output");
+            }
         }
         json_object_object_add(statisticsNode, "Value", json_object_new_string(valueString));
 
