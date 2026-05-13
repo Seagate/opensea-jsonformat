@@ -374,7 +374,8 @@ static void create_Node_For_Head_Data_From_QWords(json_object*            node,
         bool         headDataAdded  = false;
         json_object* headValueArray = json_object_new_array();
 
-        for (uint8_t headIter = UINT8_C(0); headIter < FARM_MAX_HEADS && headIter < numberOfHeads; ++headIter)
+        uint8_t maxIter = (numberOfHeads < FARM_MAX_HEADS) ? M_STATIC_CAST(uint8_t, numberOfHeads) : M_STATIC_CAST(uint8_t, FARM_MAX_HEADS);
+        for (uint8_t headIter = UINT8_C(0); headIter < maxIter; ++headIter)
         {
             uint8_t status = get_Farm_Status_Byte(byHead[headIter]);
             if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
@@ -499,7 +500,8 @@ static void create_Node_For_Head_Data_With_3_Stat_From_QWord(
         bool         headDataAdded  = false;
         json_object* headValueArray = json_object_new_array();
 
-        for (uint8_t headIter = UINT8_C(0); headIter < FARM_MAX_HEADS && headIter < numberOfHeads; ++headIter)
+        uint8_t maxIter = (numberOfHeads < FARM_MAX_HEADS) ? M_STATIC_CAST(uint8_t, numberOfHeads) : M_STATIC_CAST(uint8_t, FARM_MAX_HEADS);
+        for (uint8_t headIter = UINT8_C(0); headIter < maxIter; ++headIter)
         {
             uint8_t status = get_Farm_Status_Byte(byHead[headIter][0]);
             if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
@@ -1343,7 +1345,8 @@ static void create_Node_For_FARM_Reliability_Statistics_Page(json_object*       
                                               reliability->numberOfVelocityObserverNoTMDByHead, headCount,
                                               FARM_BY_HEAD_TO_UINT64_FROM_QWORD, 0.0);
         bool atleastOnevelocityObservedSupported = false;
-        for (uint8_t headIter = UINT8_C(0); headIter < FARM_MAX_HEADS && headIter < headCount; ++headIter)
+        uint8_t maxIter = (headCount < FARM_MAX_HEADS) ? M_STATIC_CAST(uint8_t, headCount) : M_STATIC_CAST(uint8_t, FARM_MAX_HEADS);
+        for (uint8_t headIter = UINT8_C(0); headIter < maxIter; ++headIter)
         {
             if ((get_Farm_Status_Byte(reliability->velocityObserverByHead[headIter]) & FARM_FIELD_SUPPORTED_BIT) > 0)
             {
