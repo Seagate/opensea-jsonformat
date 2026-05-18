@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
-project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '1.1.0', default_options: ['warning_level=2', 'default_library=static'])
+project(
+    'opensea-jsonformat',
+    'c',
+    license: 'MPL-2.0',
+    version: '1.1.0',
+    default_options: ['warning_level=2', 'default_library=static'],
+)
 
 # =============================================================================
 # REPRODUCIBLE BUILD SUPPORT - Accept BUILD_TIMESTAMP from parent project
@@ -113,17 +119,17 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wmismatched-dealloc',
         '-Wfree-nonheap-object',
         '-fnullability',
-        '-Wnullability', # Warnings for nullability annotations
-        '-Wnullability-completeness', # Warn if nullability annotations are incomplete
-        '-Wnullability-completeness-on-arrays', # Warn if nullability annotations are incomplete
+        '-Wnullability',  # Warnings for nullability annotations
+        '-Wnullability-completeness',  # Warn if nullability annotations are incomplete
+        '-Wnullability-completeness-on-arrays',  # Warn if nullability annotations are incomplete
         # '-Wnullable-to-nonnull-conversion', # Basically warns so you have to cast to the correct nullability type. Not needed today -TJE
         # '-Wswitch-enum', # too noisy for now - TJE
         '-Walloc-zero',
         '-Walloc-size',
         '-Wcalloc-transposed-args',
-        '-Werror=alloca', # Do not allow use of the alloca function
-        '-Wstring-compare', # Helps detect when strcmp is used when the programmer likely meant to use strncmp
-        '-Wfortify-source' # Clang specific (at least for now) but enables additional diagnostics.
+        '-Werror=alloca',  # Do not allow use of the alloca function
+        '-Wstring-compare',  # Helps detect when strcmp is used when the programmer likely meant to use strncmp
+        '-Wfortify-source',  # Clang specific (at least for now) but enables additional diagnostics.
     ]
 
     if get_option('cc-suggest-attribute')
@@ -323,31 +329,48 @@ endif
 
 incdir = include_directories('include')
 
-fallback_method = 'auto'
+force_jsonc_wrap = false
+
 if host_machine.system() == 'sunos'
     if meson.version().version_compare('>=1.2.0')
         if target_machine.kernel() != 'illumos'
-        fallback_method = 'fallback'
+            force_jsonc_wrap = true
         endif
     else
         # Need a different way to decide illumos detection here.
-        fallback_method = 'fallback'
+        force_jsonc_wrap = true
     endif
 endif
 
-# Simplify json-c dependency with fallback
-jsonc_dep = dependency('json-c',
-    required: true,
-    fallback: ['json-c', 'jsonc_dep'],
-    method: fallback_method,
-    default_options: [
-                'default_library=static',
-                'build_apps=false',
-                'disable_extra_libs=true',
-                'disable_json_pointer=false',
-                'disable_json_patch=false',
-            ]
-)
+if force_jsonc_wrap
+    # Force subproject on Solaris
+    jsonc_proj = subproject(
+        'json-c',
+        default_options: [
+            'default_library=static',
+            'build_apps=false',
+            'disable_extra_libs=true',
+            'disable_json_pointer=false',
+            'disable_json_patch=false',
+        ],
+    )
+    jsonc_dep = jsonc_proj.get_variable('jsonc_dep')
+
+else
+    # Simplify json-c dependency with fallback
+    jsonc_dep = dependency(
+        'json-c',
+        required: true,
+        fallback: ['json-c', 'jsonc_dep'],
+        default_options: [
+            'default_library=static',
+            'build_apps=false',
+            'disable_extra_libs=true',
+            'disable_json_pointer=false',
+            'disable_json_patch=false',
+        ],
+    )
+endif
 
 defaultlib = get_option('default_library')
 
@@ -360,7 +383,9 @@ elif defaultlib == 'shared'
     build_c_args += ['-DEXPORT_OPENSEA_JSONFORMAT']
     dep_c_args += ['-DIMPORT_OPENSEA_JSONFORMAT']
 else
-    error('Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib)
+    error(
+        'Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib,
+    )
 endif
 
 opensea_common = subproject('opensea-common')
@@ -378,7 +403,7 @@ opensea_jsonformat_lib = library(
     c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep, opensea_operations_dep, jsonc_dep],
     include_directories: incdir,
-    gnu_symbol_visibility : 'hidden',
+    gnu_symbol_visibility: 'hidden',
 )
 opensea_jsonformat_dep = declare_dependency(
     link_with: opensea_jsonformat_lib,
