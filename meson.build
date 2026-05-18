@@ -323,23 +323,23 @@ endif
 
 incdir = include_directories('include')
 
-force_fallback = false
+fallback_method = 'auto'
 if host_machine.system() == 'sunos'
-  if meson.version().version_compare('>=1.2.0')
-    if target_machine.kernel() != 'illumos'
-      force_fallback = true
+    if meson.version().version_compare('>=1.2.0')
+        if target_machine.kernel() != 'illumos'
+        fallback_method = 'fallback'
+        endif
+    else
+        # Need a different way to decide illumos detection here.
+        fallback_method = 'fallback'
     endif
-  else
-    # Need a different way to decide illumos detection here.
-    force_fallback = true
-  endif
 endif
 
 # Simplify json-c dependency with fallback
 jsonc_dep = dependency('json-c',
-    required = true,
+    required: true,
     fallback: ['json-c', 'jsonc_dep'],
-    method: force_fallback ? 'fallback' : 'auto',
+    method: fallback_method,
     default_options: [
                 'default_library=static',
                 'build_apps=false',
