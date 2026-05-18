@@ -323,75 +323,17 @@ endif
 
 incdir = include_directories('include')
 
-# Check if json-c was already provided by parent project
-# Try to get it without required=true first to avoid failure if parent hasn't set it up yet
-jsonc_dep = dependency('json-c', required: false)
-
-if not jsonc_dep.found()
-    message('opensea-jsonformat: json-c not found in parent project, using local detection')
-
-    # Determine whether to use system json-c or subproject
-    use_system_json = get_option('use_system_json')
-
-    if use_system_json
-        message('opensea-jsonformat: use_system_json=true: Attempting to detect system json-c library')
-        
-        # Step 1: Try pkg-config
-        jsonc_dep = dependency('json-c', required: false)
-        if jsonc_dep.found()
-            message('opensea-jsonformat: Found system json-c via pkg-config')
-        else
-            message('opensea-jsonformat: pkg-config not available for json-c, trying find_library + header check')
-            # Step 2: Try find_library + has_header
-            jsonc_lib = c.find_library('json-c', required: false)
-            
-            if jsonc_lib.found()
-                message('opensea-jsonformat: Found json-c library, checking for headers...')
-                # Check common header locations explicitly
-                has_json_headers = c.has_header('json-c/json_object.h', required: false) or \
-                                   c.has_header('json_object.h', required: false)
-                
-                if has_json_headers
-                    message('opensea-jsonformat: Found system json-c library and headers')
-                    jsonc_dep = declare_dependency(
-                        dependencies: jsonc_lib,
-                        compile_args: ['-I/usr/include', '-I/usr/local/include']
-                    )
-                else
-                    error('opensea-jsonformat: json-c library found but headers not found!\n' +
-                          'Please install json-c development headers\n' +
-                          'OR use -Duse_system_json=false to build json-c from bundled subproject')
-                endif
-            else
-                error('opensea-jsonformat: json-c library not found!\n' +
-                      'Please install json-c development package\n' +
-                      'OR use -Duse_system_json=false to build json-c from bundled subproject')
-            endif
-        endif
-    endif
-
-    # If use_system_json=false (default), build from subproject
-    if not jsonc_dep.found()
-        if use_system_json
-            error('opensea-jsonformat: Failed to find system json-c. Please install development headers or set -Duse_system_json=false')
-        endif
-        
-        message('opensea-jsonformat: use_system_json=false: Building json-c from subproject')
-        jsonc = subproject(
-            'json-c',
-            default_options: [
+# Simplify json-c dependency with fallback
+jsonc_dep = dependency('json-c',
+    fallback: ['json-c', 'jsonc_dep'],
+    default_options: [
                 'default_library=static',
                 'build_apps=false',
                 'disable_extra_libs=true',
                 'disable_json_pointer=false',
                 'disable_json_patch=false',
-            ],
-        )
-        jsonc_dep = jsonc.get_variable('jsonc_dep')
-    endif
-else
-    message('opensea-jsonformat: Using json-c from parent project')
-endif
+            ]
+)
 
 defaultlib = get_option('default_library')
 
