@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
-project('opensea-jsonformat', 'c', license: 'MPL-2.0', version: '1.1.0', meson_version: '>=0.50.0', default_options: ['warning_level=2', 'default_library=static'])
+project(
+    'opensea-jsonformat',
+    'c',
+    license: 'MPL-2.0',
+    version: '1.1.0',
+    default_options: ['warning_level=2', 'default_library=static'],
+)
 
 # =============================================================================
 # REPRODUCIBLE BUILD SUPPORT - Accept BUILD_TIMESTAMP from parent project
@@ -18,6 +24,9 @@ c = meson.get_compiler('c')
 
 global_cpp_args = []
 
+# Work around for pre-GCC5 to use a newer standard to compile.
+# This generates a warning over using build-in c_std option, but
+# we live with that for now since we support older meson versions presently.
 if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
     if c.version().version_compare('<5.0')
         # 4.7.4+ has C11 support, but c89 is the default standard so we need to change it.
@@ -106,17 +115,17 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wmismatched-dealloc',
         '-Wfree-nonheap-object',
         '-fnullability',
-        '-Wnullability', # Warnings for nullability annotations
-        '-Wnullability-completeness', # Warn if nullability annotations are incomplete
-        '-Wnullability-completeness-on-arrays', # Warn if nullability annotations are incomplete
+        '-Wnullability',  # Warnings for nullability annotations
+        '-Wnullability-completeness',  # Warn if nullability annotations are incomplete
+        '-Wnullability-completeness-on-arrays',  # Warn if nullability annotations are incomplete
         # '-Wnullable-to-nonnull-conversion', # Basically warns so you have to cast to the correct nullability type. Not needed today -TJE
         # '-Wswitch-enum', # too noisy for now - TJE
         '-Walloc-zero',
         '-Walloc-size',
         '-Wcalloc-transposed-args',
-        '-Werror=alloca', # Do not allow use of the alloca function
-        '-Wstring-compare', # Helps detect when strcmp is used when the programmer likely meant to use strncmp
-        '-Wfortify-source' # Clang specific (at least for now) but enables additional diagnostics.
+        '-Werror=alloca',  # Do not allow use of the alloca function
+        '-Wstring-compare',  # Helps detect when strcmp is used when the programmer likely meant to use strncmp
+        '-Wfortify-source',  # Clang specific (at least for now) but enables additional diagnostics.
     ]
 
     if get_option('cc-suggest-attribute')
@@ -265,11 +274,15 @@ elif c.get_id().contains('msvc')
         warning_flags += '/QIntel-jcc-erratum'
     endif
 
-    # If this MSVC version supports /std:c17, force C17 mode. MSVC defaults to a
-    # pre-C99 dialect without this flag, which means _Generic and other C11/C17
-    # features are unavailable even though the compiler supports them.
-    if c.has_argument('/std:c17')
+    # MSVC defaults to old MSVC C compatibility which is mostly C89 with some newer C99/C11-ish support
+    # Since we support older meson versions, we deal with this causing a warning over using the default_options to
+    # set the C standard for the project.
+    if  c.has_argument('/std:clatest')
+        warning_flags += '/std:clatest'
+    elif  c.has_argument('/std:c17')
         warning_flags += '/std:c17'
+    elif  c.has_argument('/std:c11')
+        warning_flags += '/std:c11'
     endif
 
     linker_flags += [
@@ -320,73 +333,47 @@ endif
 
 incdir = include_directories('include')
 
-# Check if json-c was already provided by parent project
-# Try to get it without required=true first to avoid failure if parent hasn't set it up yet
-jsonc_dep = dependency('json-c', required: false)
+force_jsonc_wrap = false
 
-if not jsonc_dep.found()
-    message('opensea-jsonformat: json-c not found in parent project, using local detection')
-
-    # Determine whether to use system json-c or subproject
-    use_system_json = get_option('use_system_json')
-
-    if use_system_json
-        message('opensea-jsonformat: use_system_json=true: Attempting to detect system json-c library')
-
-        # Step 1: Try pkg-config
-        jsonc_dep = dependency('json-c', required: false)
-        if jsonc_dep.found()
-            message('opensea-jsonformat: Found system json-c via pkg-config')
-        else
-            message('opensea-jsonformat: pkg-config not available for json-c, trying find_library + header check')
-            # Step 2: Try find_library + has_header
-            jsonc_lib = c.find_library('json-c', required: false)
-
-            if jsonc_lib.found()
-                message('opensea-jsonformat: Found json-c library, checking for headers...')
-                # Check common header locations explicitly
-                has_json_headers = c.has_header('json-c/json_object.h', required: false) or c.has_header('json_object.h', required: false)
-
-                if has_json_headers
-                    message('opensea-jsonformat: Found system json-c library and headers')
-                    jsonc_dep = declare_dependency(
-                        dependencies: jsonc_lib,
-                        compile_args: ['-I/usr/include', '-I/usr/local/include']
-                    )
-                else
-                    error('opensea-jsonformat: json-c library found but headers not found!\n' +
-                          'Please install json-c development headers\n' +
-                          'OR use -Duse_system_json=false to build json-c from bundled subproject')
-                endif
-            else
-                error('opensea-jsonformat: json-c library not found!\n' +
-                      'Please install json-c development package\n' +
-                      'OR use -Duse_system_json=false to build json-c from bundled subproject')
-            endif
+if host_machine.system() == 'sunos'
+    if meson.version().version_compare('>=1.2.0')
+        if target_machine.kernel() != 'illumos'
+            force_jsonc_wrap = true
         endif
+    else
+        # Need a different way to decide illumos detection here.
+        force_jsonc_wrap = true
     endif
+endif
 
-    # If use_system_json=false (default), build from subproject
-    if not jsonc_dep.found()
-        if use_system_json
-            error('opensea-jsonformat: Failed to find system json-c. Please install development headers or set -Duse_system_json=false')
-        endif
+if force_jsonc_wrap
+    # Force subproject on Solaris
+    jsonc_proj = subproject(
+        'json-c',
+        default_options: [
+            'default_library=static',
+            'build_apps=false',
+            'disable_extra_libs=true',
+            'disable_json_pointer=false',
+            'disable_json_patch=false',
+        ],
+    )
+    jsonc_dep = jsonc_proj.get_variable('jsonc_dep')
 
-        message('opensea-jsonformat: use_system_json=false: Building json-c from subproject')
-        jsonc = subproject(
-            'json-c',
-            default_options: [
-                'default_library=static',
-                'build_apps=false',
-                'disable_extra_libs=true',
-                'disable_json_pointer=false',
-                'disable_json_patch=false',
-            ],
-        )
-        jsonc_dep = jsonc.get_variable('jsonc_dep')
-    endif
 else
-    message('opensea-jsonformat: Using json-c from parent project')
+    # Simplify json-c dependency with fallback
+    jsonc_dep = dependency(
+        'json-c',
+        required: true,
+        fallback: ['json-c', 'jsonc_dep'],
+        default_options: [
+            'default_library=static',
+            'build_apps=false',
+            'disable_extra_libs=true',
+            'disable_json_pointer=false',
+            'disable_json_patch=false',
+        ],
+    )
 endif
 
 defaultlib = get_option('default_library')
@@ -400,7 +387,9 @@ elif defaultlib == 'shared'
     build_c_args += ['-DEXPORT_OPENSEA_JSONFORMAT']
     dep_c_args += ['-DIMPORT_OPENSEA_JSONFORMAT']
 else
-    error('Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib)
+    error(
+        'Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib,
+    )
 endif
 
 opensea_common = subproject('opensea-common')
@@ -418,7 +407,7 @@ opensea_jsonformat_lib = library(
     c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep, opensea_operations_dep, jsonc_dep],
     include_directories: incdir,
-    gnu_symbol_visibility : 'hidden',
+    gnu_symbol_visibility: 'hidden',
 )
 opensea_jsonformat_dep = declare_dependency(
     link_with: opensea_jsonformat_lib,
