@@ -14,11 +14,11 @@
 // \brief This file defines types and functions related to the JSON-based output for Error LBA.
 
 #include "error_lba_json.h"
+#include "io_utils.h"
 #include "logs.h"
 #include "memory_safety.h"
 #include "secure_file.h"
 #include "string_utils.h"
-#include "io_utils.h"
 
 #define COMBINE_ERROR_LBA_JSON_VERSIONS_(x, y, z) #x "." #y "." #z
 #define COMBINE_ERROR_LBA_JSON_VERSIONS(x, y, z)  COMBINE_ERROR_LBA_JSON_VERSIONS_(x, y, z)
@@ -27,17 +27,44 @@
 #define ERROR_LBA_JSON_MINOR_VERSION              0
 #define ERROR_LBA_JSON_PATCH_VERSION              0
 
-#define ERROR_LBA_JSON_VERSION                                                                                               \
-    COMBINE_ERROR_LBA_JSON_VERSIONS(ERROR_LBA_JSON_MAJOR_VERSION, ERROR_LBA_JSON_MINOR_VERSION, ERROR_LBA_JSON_PATCH_VERSION)
+#define ERROR_LBA_JSON_VERSION                                                                                         \
+    COMBINE_ERROR_LBA_JSON_VERSIONS(ERROR_LBA_JSON_MAJOR_VERSION, ERROR_LBA_JSON_MINOR_VERSION,                        \
+                                    ERROR_LBA_JSON_PATCH_VERSION)
 #define MAX_TIME_UNIT_STRING_LENGHT 10
 
-
-eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors,
-                                         json_object* jObject)
+M_NODISCARD static eReturnValues add_JSON_Object(json_object* parent, const char* key, json_object* child)
 {
-    eReturnValues ret = SUCCESS;
+    if (child == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    if (json_object_object_add(parent, key, child) != 0)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
 
-    if (LBAs == M_NULLPTR || numberOfErrors == 0)
+M_NODISCARD static eReturnValues add_JSON_Array_Element(json_object* parent, json_object* child)
+{
+    if (child == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    if (json_object_array_add(parent, child) != 0)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
+
+M_NODISCARD eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs,
+                                                     uint16_t         numberOfErrors,
+                                                     json_object*     jObject)
+{
+    if (LBAs == M_NULLPTR || numberOfErrors == 0 || jObject == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -64,8 +91,8 @@ eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberO
         }
 
         // Get repair status string
-        eRepairStatus status = LBAs[errorIter - 1].repairStatus;
-        const char* repairString = get_Repair_Status_String(status);
+        eRepairStatus status       = LBAs[errorIter - 1].repairStatus;
+        const char*   repairString = get_Repair_Status_String(status);
 
         // Check if access denied
         if (status == UNABLE_TO_REPAIR_ACCESS_DENIED)
@@ -74,46 +101,72 @@ eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberO
         }
 
         // Add defect number, LBA, and repair status to JSON object
-        json_object_object_add(jErrorEntry, "Defect Number", json_object_new_uint64(errorIter));
-        json_object_object_add(jErrorEntry, "Defect LBA", json_object_new_uint64(LBAs[errorIter - 1].errorAddress));
-        json_object_object_add(jErrorEntry, "Repair Status", json_object_new_string(repairString));
+        if (add_JSON_Object(jErrorEntry, "Defect Number", json_object_new_uint64(errorIter)) != 0 ||
+            add_JSON_Object(jErrorEntry, "Defect LBA", json_object_new_uint64(LBAs[errorIter - 1].errorAddress)) != 0 ||
+            add_JSON_Object(jErrorEntry, "Repair Status", json_object_new_string(repairString)) != 0)
+        {
+            json_object_put(jErrorEntry);
+            json_object_put(jBadLBAsArray);
+            return MEMORY_FAILURE;
+        }
 
         // Add error entry to array
-        json_object_array_add(jBadLBAsArray, jErrorEntry);
+        if (add_JSON_Array_Element(jBadLBAsArray, jErrorEntry) != 0)
+        {
+            json_object_put(jBadLBAsArray);
+            return MEMORY_FAILURE;
+        }
     }
 
     // Add the bad LBAs array to the main JSON object
-    json_object_object_add(jObject, "BAD LBAs", jBadLBAsArray);
+    if (add_JSON_Object(jObject, "BAD LBAs", jBadLBAsArray) != 0)
+    {
+        return MEMORY_FAILURE;
+    }
 
     // Add access denied note if needed
     if (showAccessDeniedNote)
     {
         json_object* jNote = json_object_new_object();
-        if (jNote != M_NULLPTR)
+        if (jNote == M_NULLPTR)
         {
-            json_object_object_add(jNote, "Title", json_object_new_string("Access Denied"));
-            json_object_object_add(jNote, "Message",
-                                   json_object_new_string("Some LBAs could not be repaired because access to them was "
-                                                          "denied. This may happen when a secondary drive with a file "
-                                                          "system installed on it is recognized by the current host OS, "
-                                                          "but the current host doesn't have permission to change the "
-                                                          "contents of the second drive."));
-            json_object_object_add(jObject, "Access Denied Note", jNote);
+            return MEMORY_FAILURE;
+        }
+        if (add_JSON_Object(jNote, "Title", json_object_new_string("Access Denied")) != 0 ||
+            add_JSON_Object(jNote, "Message",
+                            json_object_new_string("Some LBAs could not be repaired because access to them was "
+                                                   "denied. This may happen when a secondary drive with a file "
+                                                   "system installed on it is recognized by the current host OS, "
+                                                   "but the current host doesn't have permission to change the "
+                                                   "contents of the second drive.")) != 0)
+        {
+            json_object_put(jNote);
+            return MEMORY_FAILURE;
+        }
+        if (add_JSON_Object(jObject, "Access Denied Note", jNote) != 0)
+        {
+            return MEMORY_FAILURE;
         }
     }
 
-    return ret;
+    return SUCCESS;
 }
 
-eReturnValues create_JSON_Output_For_Error_LBA(const tDevice* device, constPtrErrorLBA LBAs,uint16_t numberOfErrors,
-                                                char** jsonFormat, const char* utilityName, const char* buildVersion)
+M_NODISCARD eReturnValues create_JSON_Output_For_Error_LBA(const tDevice*   device,
+                                                           constPtrErrorLBA LBAs,
+                                                           uint16_t         numberOfErrors,
+                                                           char**           jsonFormat,
+                                                           const char*      utilityName,
+                                                           const char*      buildVersion)
 {
     eReturnValues ret = SUCCESS;
 
-    if (LBAs == M_NULLPTR || numberOfErrors == 0)
+    if (device == M_NULLPTR || LBAs == M_NULLPTR || numberOfErrors == 0 || jsonFormat == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+
+    *jsonFormat = M_NULLPTR;
 
     // Create a new JSON object
     json_object* rootObj = json_object_new_object();
@@ -121,8 +174,13 @@ eReturnValues create_JSON_Output_For_Error_LBA(const tDevice* device, constPtrEr
     if (rootObj == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    create_Node_For_Utility_Version(rootObj, utilityName, buildVersion, "LBA ERROR LIST", ERROR_LBA_JSON_VERSION);
-    create_Node_For_Drive_Information(rootObj, device);
+    if (create_Node_For_Utility_Version(rootObj, utilityName, buildVersion, "LBA ERROR LIST", ERROR_LBA_JSON_VERSION) !=
+            SUCCESS ||
+        create_Node_For_Drive_Information(rootObj, device) != SUCCESS)
+    {
+        json_object_put(rootObj);
+        return MEMORY_FAILURE;
+    }
 
     // Create the bad LBAs list in JSON format
     ret = create_JSON_LBA_Error_List(LBAs, numberOfErrors, rootObj);
@@ -134,9 +192,10 @@ eReturnValues create_JSON_Output_For_Error_LBA(const tDevice* device, constPtrEr
 
     // Convert JSON object to formatted string
     const char* jstr = json_object_to_json_string_ext(rootObj, JSON_C_TO_STRING_PRETTY);
-     // copy the json output into string
+    // copy the json output into string
     if (asprintf(jsonFormat, "%s", jstr) < 0)
     {
+        json_object_put(rootObj);
         return MEMORY_FAILURE;
     }
 

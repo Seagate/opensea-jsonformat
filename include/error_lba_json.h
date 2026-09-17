@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include "sector_repair.h"
 #include "jsonformat_common.h"
+#include "sector_repair.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -25,21 +25,22 @@ extern "C"
 
     M_PARAM_RO(1)
     M_PARAM_RO(3)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA M_NONNULL LBAs,
-                                                                      uint16_t numberOfErrors,
-                                                                      json_object* M_NONNULL jObject);
+    M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues create_JSON_LBA_Error_List(constPtrErrorLBA M_NONNULL LBAs,
+                                                                                uint16_t               numberOfErrors,
+                                                                                json_object* M_NONNULL jObject);
 
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(4)
     M_PARAM_RO(5)
     M_PARAM_RO(6)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Error_LBA(const tDevice*  M_NONNULL  device,
-                                                                          constPtrErrorLBA M_NONNULL LBAs,
-                                                                          uint16_t                   numberOfErrors,
-                                                                          char*M_NONNULL* M_NULLABLE jsonFormat,
-                                                                          const char*    M_NONNULL   utilityName,
-                                                                          const char*    M_NONNULL   buildVersion);
+    M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues
+    create_JSON_Output_For_Error_LBA(const tDevice* M_NONNULL    device,
+                                     constPtrErrorLBA M_NONNULL  LBAs,
+                                     uint16_t                    numberOfErrors,
+                                     char* M_NONNULL* M_NULLABLE jsonFormat,
+                                     const char* M_NONNULL       utilityName,
+                                     const char* M_NONNULL       buildVersion);
 
 #if defined(__cplusplus)
 }

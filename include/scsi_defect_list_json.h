@@ -18,6 +18,9 @@
 #include "defect.h"
 #include "jsonformat_common.h"
 
+#define SCSI_DEFECT_LIST_JSON_GENERATION_ERROR                                                                         \
+    JSON_GENERATION_ERROR("SCSI Defect List", "Something went wrong generating JSON SCSI defect list data")
+
 #if defined(__cplusplus)
 extern "C"
 {

@@ -32,6 +32,40 @@
 #define MAX_SEAGATE_VALUE_STRING_LENGHT 25
 #define MAX_VALUE_STRING_LENGHT         60
 
+M_NODISCARD static eReturnValues add_JSON_Object(json_object* parent, const char* key, json_object* child)
+{
+    if (parent == M_NULLPTR || child == M_NULLPTR)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    if (json_object_object_add(parent, key, child) != 0)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
+
+#define RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(expression)                                                             \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((expression) != SUCCESS)                                                                                   \
+        {                                                                                                              \
+            return MEMORY_FAILURE;                                                                                     \
+        }                                                                                                              \
+    } while (0)
+
+#define RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(root, expression)                                                  \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((expression) != SUCCESS)                                                                                   \
+        {                                                                                                              \
+            json_object_put(root);                                                                                     \
+            return MEMORY_FAILURE;                                                                                     \
+        }                                                                                                              \
+    } while (0)
+
 M_DECLARE_ENUM(eStatisticsType,
                /*!< Statistics Type Count. */
                STATISTICS_TYPE_COUNT = 0,
@@ -60,10 +94,10 @@ M_DECLARE_ENUM(eStatisticsType,
                /*!< Statistics Type Humidity (SAS only). */
                STATISTICS_TYPE_SCSI_HUMIDITY = 12);
 
-static void create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
-                                              json_object*     statisticsNode,
-                                              seagateStatistic theStatistic,
-                                              const char*      statisticName)
+M_NODISCARD static eReturnValues create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
+                                                                   json_object*     statisticsNode,
+                                                                   seagateStatistic theStatistic,
+                                                                   const char*      statisticName)
 {
     DECLARE_ZERO_INIT_ARRAY(char, valueString, MAX_SEAGATE_VALUE_STRING_LENGHT);
     if (theStatistic.isValueValid)
@@ -75,7 +109,8 @@ static void create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
             {
                 timeInMinutes *= UINT64_C(60);
             }
-            if (0 > snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu64 " minutes", timeInMinutes))
+            if (0 >
+                snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu64 " minutes", timeInMinutes))
             {
                 perror("Error formatting value string for time in minutes");
             }
@@ -83,10 +118,10 @@ static void create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
         else
         {
             if (0 > snprintf_err_handle(valueString, MAX_SEAGATE_VALUE_STRING_LENGHT, "%" PRIu32 "",
-                                theStatistic.statisticsDataValue))
-                                {
-                                    perror("Error formatting value string for time");
-                                }
+                                        theStatistic.statisticsDataValue))
+            {
+                perror("Error formatting value string for time");
+            }
         }
     }
     else
@@ -97,74 +132,87 @@ static void create_Node_For_Seagate_Statistic(eStatisticsType  statisticsType,
         }
     }
 
-    json_object_object_add(statisticsNode, statisticName, json_object_new_string(valueString));
+    return add_JSON_Object(statisticsNode, statisticName, json_object_new_string(valueString));
 }
 
-static void create_Node_For_Statistic(eStatisticsType statisticsType,
-                                      json_object*    statisticsObject,
-                                      statistic       theStatistic,
-                                      const char*     statisticName,
-                                      const char*     statisticUnit,
-                                      bool            isLimit)
+M_NODISCARD static eReturnValues create_Node_For_Statistic(eStatisticsType statisticsType,
+                                                           json_object*    statisticsObject,
+                                                           statistic       theStatistic,
+                                                           const char*     statisticName,
+                                                           const char*     statisticUnit,
+                                                           bool            isLimit)
 {
     if (theStatistic.isSupported)
     {
         json_object* statisticsNode = json_object_new_object();
+        if (statisticsNode == M_NULLPTR)
+        {
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(add_JSON_Object(statisticsObject, statisticName, statisticsNode));
 
         if (theStatistic.supportsNotification)
         {
-            json_object_object_add(statisticsNode, "Supports Notification", json_object_new_string("Yes"));
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                add_JSON_Object(statisticsNode, "Supports Notification", json_object_new_string("Yes")));
         }
         else
         {
-            json_object_object_add(statisticsNode, "Supports Notification", json_object_new_string("No"));
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                add_JSON_Object(statisticsNode, "Supports Notification", json_object_new_string("No")));
         }
 
         if (theStatistic.monitoredConditionMet)
         {
-            json_object_object_add(statisticsNode, "Monitored Condition Met", json_object_new_string("Yes"));
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                add_JSON_Object(statisticsNode, "Monitored Condition Met", json_object_new_string("Yes")));
         }
         else
         {
-            json_object_object_add(statisticsNode, "Monitored Condition Met", json_object_new_string("No"));
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                add_JSON_Object(statisticsNode, "Monitored Condition Met", json_object_new_string("No")));
         }
 
         if (theStatistic.isThresholdValid)
         {
-            json_object_object_add(statisticsNode, "Condition Monitored With Threshold", json_object_new_string("Yes"));
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                add_JSON_Object(statisticsNode, "Condition Monitored With Threshold", json_object_new_string("Yes")));
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                json_object_object_add(statisticsNode, "Threshold Trigger Type",
-                                       json_object_new_string("Trigger when update"));
+                RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(add_JSON_Object(statisticsNode, "Threshold Trigger Type",
+                                                                       json_object_new_string("Trigger when update")));
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                json_object_object_add(statisticsNode, "Threshold Trigger Type",
-                                       json_object_new_string("Trigger when equal"));
+                RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(add_JSON_Object(statisticsNode, "Threshold Trigger Type",
+                                                                       json_object_new_string("Trigger when equal")));
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                json_object_object_add(statisticsNode, "Threshold Trigger Type",
-                                       json_object_new_string("Trigger when not equal"));
+                RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(add_JSON_Object(
+                    statisticsNode, "Threshold Trigger Type", json_object_new_string("Trigger when not equal")));
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                json_object_object_add(statisticsNode, "Threshold Trigger Type",
-                                       json_object_new_string("Trigger when greater"));
+                RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(add_JSON_Object(statisticsNode, "Threshold Trigger Type",
+                                                                       json_object_new_string("Trigger when greater")));
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                json_object_object_add(statisticsNode, "Threshold Trigger Type",
-                                       json_object_new_string("Trigger when lesser"));
+                RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(add_JSON_Object(statisticsNode, "Threshold Trigger Type",
+                                                                       json_object_new_string("Trigger when lesser")));
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             case THRESHOLD_TYPE_RESERVED:
             default:
-                json_object_object_add(statisticsNode, "Threshold Trigger Type", json_object_new_string("No Trigger"));
+                RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                    add_JSON_Object(statisticsNode, "Threshold Trigger Type", json_object_new_string("No Trigger")));
                 break;
             }
         }
         else
         {
-            json_object_object_add(statisticsNode, "Condition Monitored With Threshold", json_object_new_string("No"));
-            json_object_object_add(statisticsNode, "Threshold Trigger Type", json_object_new_string("N/A"));
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                add_JSON_Object(statisticsNode, "Condition Monitored With Threshold", json_object_new_string("No")));
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+                add_JSON_Object(statisticsNode, "Threshold Trigger Type", json_object_new_string("N/A")));
         }
 
         DECLARE_ZERO_INIT_ARRAY(char, valueString, MAX_VALUE_STRING_LENGHT);
@@ -203,14 +251,16 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                     DECLARE_ZERO_INIT_ARRAY(char, utilizationUsageRateString, 10);
                     if (utilizationUsageRate == 255)
                     {
-                        if (0 != safe_strcpy(utilizationUsageRateString, 10, ">254%")) M_UNLIKELY
-                        {
-                            perror("Error copying utilization usage rate string");
-                        }
+                        if (0 != safe_strcpy(utilizationUsageRateString, 10, ">254%"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying utilization usage rate string");
+                            }
                     }
                     else
                     {
-                        if (0 > snprintf_err_handle(utilizationUsageRateString, 10, "%" PRIu8 "%%", utilizationUsageRate))
+                        if (0 >
+                            snprintf_err_handle(utilizationUsageRateString, 10, "%" PRIu8 "%%", utilizationUsageRate))
                         {
                             perror("Error formatting utilization usage rate string");
                         }
@@ -220,59 +270,67 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                     switch (rateBasis)
                     {
                     case 0: // since manufacture
-                        if (0 != safe_strcpy(rateBasisString, 25, "since manufacture")) M_UNLIKELY
-                        {
-                            perror("Error copying rate basis string for Utilization Usage Rate");
-                        }
+                        if (0 != safe_strcpy(rateBasisString, 25, "since manufacture"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying rate basis string for Utilization Usage Rate");
+                            }
                         break;
                     case 4: // since power on reset
-                        if (0 != safe_strcpy(rateBasisString, 25, "since power on reset")) M_UNLIKELY
-                        {
-                            perror("Error copying rate basis string for Utilization Usage Rate");
-                        }
+                        if (0 != safe_strcpy(rateBasisString, 25, "since power on reset"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying rate basis string for Utilization Usage Rate");
+                            }
                         break;
                     case 8: // power on hours
-                        if (0 != safe_strcpy(rateBasisString, 25, "for POH")) M_UNLIKELY
-                        {
-                            perror("Error copying rate basis string for Utilization Usage Rate");
-                        }
+                        if (0 != safe_strcpy(rateBasisString, 25, "for POH"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying rate basis string for Utilization Usage Rate");
+                            }
                         break;
                     case 0xF: // undetermined
                     default:
-                        if (0 != safe_strcpy(rateBasisString, 25, "undetermined")) M_UNLIKELY
-                        {
-                            perror("Error copying rate basis string for Utilization Usage Rate");
-                        }
+                        if (0 != safe_strcpy(rateBasisString, 25, "undetermined"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying rate basis string for Utilization Usage Rate");
+                            }
                         break;
                     }
 
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s %s", utilizationUsageRateString,
-                                        rateBasisString);
+                    M_IGNORE_SAFE_INT_CALL(
+                        snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%s %s", utilizationUsageRateString,
+                                            rateBasisString),
+                        "max 9 (PRIu8 '+') + space + max 24 (static rate-basis literal) = 35 bytes < 60");
                 }
                 break;
 
                 case 0x10: // invalid due to insufficient info
-                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT,
-                                        "Invalid - insufficient info collected")) M_UNLIKELY
-                                        {
-                                            perror("Error copying value string for Utilization Usage Rate");
-                                        }
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Invalid - insufficient info collected"))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying value string for Utilization Usage Rate");
+                        }
                     break;
 
                 case 0x81: // unreasonable due to date and time timestamp
                     if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT,
-                                        "Unreasonable due to date and time timestamp")) M_UNLIKELY
-                                        {
-                                            perror("Error copying value string for Utilization Usage Rate");
-                                        }
+                                         "Unreasonable due to date and time timestamp"))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying value string for Utilization Usage Rate");
+                        }
                     break;
 
                 case 0xFF:
                 default: // invalid for unknown reason
-                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Invalid for unknown reason")) M_UNLIKELY
-                    {
-                        perror("Error copying value string for Utilization Usage Rate");
-                    }
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Invalid for unknown reason"))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying value string for Utilization Usage Rate");
+                        }
                     break;
                 }
             }
@@ -280,7 +338,7 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
 
             case STATISTICS_TYPE_TEMPERATURE:
                 if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
-                                    C_CAST(int8_t, theStatistic.statisticValue)))
+                                            C_CAST(int8_t, theStatistic.statisticValue)))
                 {
                     perror("Error formatting temperature statistic for JSON output");
                 }
@@ -309,12 +367,12 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
 
                     convert_Seconds_To_Displayable_Time(statisticValue, &years, &days, &hours, &minutes, &seconds);
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
-                                        "%" PRIu8 " years %" PRIu16 " days %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8
-                                        " seconds",
-                                        years, days, hours, minutes, seconds))
-                                        {
-                                            perror("Error formatting time statistic for JSON output");
-                                        }
+                                                "%" PRIu8 " years %" PRIu16 " days %" PRIu8 " hours %" PRIu8
+                                                " minutes %" PRIu8 " seconds",
+                                                years, days, hours, minutes, seconds))
+                    {
+                        perror("Error formatting time statistic for JSON output");
+                    }
                 }
                 else
                 {
@@ -338,7 +396,8 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
             case STATISTICS_TYPE_SATA_RESOURCE_AVAILABILITY:
             {
                 double fractionAvailable = C_CAST(double, M_Word0(theStatistic.statisticValue)) / 65535.0;
-                if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%% Available", fractionAvailable))
+                if (0 >
+                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%0.02f%% Available", fractionAvailable))
                 {
                     perror("Error formatting SATA resource availability for JSON output");
                 }
@@ -350,19 +409,19 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 uint8_t resourceValue = M_Byte0(theStatistic.statisticValue);
                 if (/* resourceValue >= 0 && */ resourceValue <= 0x7F)
                 {
-                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Within nominal bounds (%" PRIX8 "h)",
-                                        resourceValue))
-                                        {
-                                            perror("Error formatting SATA random write resource used for JSON output");
-                                        }
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
+                                                "Within nominal bounds (%" PRIX8 "h)", resourceValue))
+                    {
+                        perror("Error formatting SATA random write resource used for JSON output");
+                    }
                 }
                 else
                 {
-                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Exceeds nominal bounds (%" PRIX8 "h)",
-                                        resourceValue))
-                                        {
-                                            perror("Error formatting SATA random write resource used for JSON output");
-                                        }
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
+                                                "Exceeds nominal bounds (%" PRIX8 "h)", resourceValue))
+                    {
+                        perror("Error formatting SATA random write resource used for JSON output");
+                    }
                 }
             }
             break;
@@ -379,18 +438,20 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 case 1:
                     if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile for unknown time"))
                     {
-                        perror("Error copying SCSI non-volatile time \"Nonvolatile for unknown time\" string for JSON output");
+                        perror("Error copying SCSI non-volatile time \"Nonvolatile for unknown time\" string for JSON "
+                               "output");
                     }
                     break;
                 case 0xFFFFFF:
                     if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile indefinitely"))
                     {
-                        perror("Error copying SCSI non-volatile time \"Nonvolatile indefinitely\" string for JSON output");
+                        perror(
+                            "Error copying SCSI non-volatile time \"Nonvolatile indefinitely\" string for JSON output");
                     }
                     break;
                 default: // time in minutes
-                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "Nonvolatile for %" PRIu64 "minutes",
-                                        theStatistic.statisticValue))
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
+                                                "Nonvolatile for %" PRIu64 "minutes", theStatistic.statisticValue))
                     {
                         perror("Error formatting SCSI non-volatile time for JSON output");
                     }
@@ -438,66 +499,66 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 {
                 case 1: // deci
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "deci seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "deci seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 case 2: // centi
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "centi seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "centi seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 case 3: // milli
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "milli seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "milli seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 case 6: // micro
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "micro seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "micro seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 case 9: // nano
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "nano seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "nano seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 case 12: // pico
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "pico seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "pico seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 case 15: // femto
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "femto seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "femto seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 case 18: // atto
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " %s", integer,
-                                        "atto seconds"))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                                                "atto seconds"))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 default:
-                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu32 " Unknown exponent value",
-                                        integer))
-                                        {
-                                            perror("Error formatting time statistic with unit for JSON output");
-                                        }
+                    if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT,
+                                                "%" PRIu32 " Unknown exponent value", integer))
+                    {
+                        perror("Error formatting time statistic with unit for JSON output");
+                    }
                     break;
                 }
             }
@@ -508,23 +569,25 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 {
                     if (isLimit)
                     {
-                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No Temperature Limit")) M_UNLIKELY
-                        {
-                            perror("Error copying temperature statistic string value for JSON output");
-                        }
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No Temperature Limit"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying temperature statistic string value for JSON output");
+                            }
                     }
                     else
                     {
-                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No Valid Temperature")) M_UNLIKELY
-                        {
-                            perror("Error copying temperature statistic string value for JSON output");
-                        }
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No Valid Temperature"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying temperature statistic string value for JSON output");
+                            }
                     }
                 }
                 else
                 {
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRId8 " C",
-                                        C_CAST(int8_t, theStatistic.statisticValue)))
+                                                C_CAST(int8_t, theStatistic.statisticValue)))
                     {
                         perror("Error formatting temperature statistic value for JSON output (likely truncation)");
                     }
@@ -534,32 +597,36 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
             case STATISTICS_TYPE_SCSI_HUMIDITY:
                 if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
                 {
-                    snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu8 "",
-                                        C_CAST(uint8_t, theStatistic.statisticValue));
+                    M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu8 "",
+                                                               C_CAST(uint8_t, theStatistic.statisticValue)),
+                                           "PRIu8 of uint8_t is at most 3 data characters + NUL = 4 bytes < 60");
                 }
                 else if (theStatistic.statisticValue == 255)
                 {
                     if (isLimit)
                     {
-                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No relative humidity limit")) M_UNLIKELY
-                        {
-                            perror("Error copying humidity statistic string value for JSON output");
-                        }
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No relative humidity limit"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying humidity statistic string value for JSON output");
+                            }
                     }
                     else
                     {
-                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No valid relative humidity")) M_UNLIKELY
-                        {
-                            perror("Error copying humidity statistic string value for JSON output");
-                        }
+                        if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "No valid relative humidity"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying humidity statistic string value for JSON output");
+                            }
                     }
                 }
                 else
                 {
-                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Reserved value reported")) M_UNLIKELY
-                    {
-                        perror("Error copying humidity statistic string value for JSON output");
-                    }
+                    if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Reserved value reported"))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying humidity statistic string value for JSON output");
+                        }
                 }
                 break;
 
@@ -568,42 +635,45 @@ static void create_Node_For_Statistic(eStatisticsType statisticsType,
                 if (statisticUnit != M_NULLPTR)
                 {
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 " %s",
-                                        theStatistic.statisticValue, statisticUnit))
-                                        {
-                                            perror("Error formatting humidity statistic value for JSON output (likely truncation)");
-                                        }
+                                                theStatistic.statisticValue, statisticUnit))
+                    {
+                        perror("Error formatting humidity statistic value for JSON output (likely truncation)");
+                    }
                 }
                 else
                 {
                     if (0 > snprintf_err_handle(valueString, MAX_VALUE_STRING_LENGHT, "%" PRIu64 "",
-                                        theStatistic.statisticValue))
-                                        {
-                                            perror("Error formatting humidity statistic value for JSON output (likely truncation)");
-                                        }
+                                                theStatistic.statisticValue))
+                    {
+                        perror("Error formatting humidity statistic value for JSON output (likely truncation)");
+                    }
                 }
                 break;
             }
         }
         else
         {
-            if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Invalid")) M_UNLIKELY
-            {
-                perror("Error copying humidity statistic string value for JSON output");
-            }
+            if (0 != safe_strcpy(valueString, MAX_VALUE_STRING_LENGHT, "Invalid"))
+                M_UNLIKELY
+                {
+                    perror("Error copying humidity statistic string value for JSON output");
+                }
         }
-        json_object_object_add(statisticsNode, "Value", json_object_new_string(valueString));
-
-        json_object_object_add(statisticsObject, statisticName, statisticsNode);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR(
+            add_JSON_Object(statisticsNode, "Value", json_object_new_string(valueString)));
     }
+
+    return SUCCESS;
 }
 
-static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(const tDevice*             device,
-                                                                  ptrDeviceStatistics        deviceStatictics,
-                                                                  ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                                  bool        seagateDeviceStatisticsAvailable,
-                                                                  const char* utilityName,
-                                                                  const char* buildVersion,
-                                                                  char**      jsonFormat)
+M_NODISCARD static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(
+    const tDevice*             device,
+    ptrDeviceStatistics        deviceStatictics,
+    ptrSeagateDeviceStatistics seagateDeviceStatistics,
+    bool                       seagateDeviceStatisticsAvailable,
+    const char*                utilityName,
+    const char*                buildVersion,
+    char**                     jsonFormat)
 {
     eReturnValues ret                           = NOT_SUPPORTED;
     bool          atleastOneStatisticsAvailable = false;
@@ -618,243 +688,361 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(const tDevice*
     if (rootNode == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
-                                    DEVICE_STATISTICS_JSON_VERSION);
-    create_Node_For_Drive_Information(rootNode, device);
+    if (create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
+                                        DEVICE_STATISTICS_JSON_VERSION) != SUCCESS ||
+        create_Node_For_Drive_Information(rootNode, device) != SUCCESS)
+    {
+        json_object_put(rootNode);
+        return MEMORY_FAILURE;
+    }
 
     if (deviceStatictics->sataStatistics.generalStatisticsSupported)
     {
         atleastOneStatisticsAvailable  = true;
         json_object* generalStatistics = json_object_new_object();
+        if (generalStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(rootNode,
+                                                    add_JSON_Object(rootNode, "General Statistics", generalStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
-                                  deviceStatictics->sataStatistics.lifetimePoweronResets, "LifeTime Power-On Resets",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
-                                  deviceStatictics->sataStatistics.powerOnHours, "Power-On Hours", "hours", false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
-                                  deviceStatictics->sataStatistics.logicalSectorsWritten, "Logical Sectors Written",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
-                                  deviceStatictics->sataStatistics.numberOfWriteCommands, "Number Of Write Commands",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
-                                  deviceStatictics->sataStatistics.logicalSectorsRead, "Logical Sectors Read",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
-                                  deviceStatictics->sataStatistics.numberOfReadCommands, "Number Of Read Commands",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP, generalStatistics,
-                                  deviceStatictics->sataStatistics.dateAndTimeTimestamp, "Date And Time Timestamp",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
-                                  deviceStatictics->sataStatistics.pendingErrorCount, "Pending Error Count", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_WORKLOAD_UTILIZATION, generalStatistics,
-                                  deviceStatictics->sataStatistics.workloadUtilization, "Workload Utilization",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_UTILIZATION_USAGE_RATE, generalStatistics,
-                                  deviceStatictics->sataStatistics.utilizationUsageRate, "Utilization Usage Rate",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SATA_RESOURCE_AVAILABILITY, generalStatistics,
-                                  deviceStatictics->sataStatistics.resourceAvailability, "Resource Availability",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SATA_RANDOM_WRITE_RESOURCE_USED, generalStatistics,
-                                  deviceStatictics->sataStatistics.randomWriteResourcesUsed,
-                                  "Random Write Resources Used", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "General Statistics", generalStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
+                                                deviceStatictics->sataStatistics.lifetimePoweronResets,
+                                                "LifeTime Power-On Resets", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
+                                      deviceStatictics->sataStatistics.powerOnHours, "Power-On Hours", "hours", false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
+                                                deviceStatictics->sataStatistics.logicalSectorsWritten,
+                                                "Logical Sectors Written", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
+                                                deviceStatictics->sataStatistics.numberOfWriteCommands,
+                                                "Number Of Write Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
+                                                deviceStatictics->sataStatistics.logicalSectorsRead,
+                                                "Logical Sectors Read", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
+                                                deviceStatictics->sataStatistics.numberOfReadCommands,
+                                                "Number Of Read Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP, generalStatistics,
+                                                deviceStatictics->sataStatistics.dateAndTimeTimestamp,
+                                                "Date And Time Timestamp", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalStatistics,
+                                                deviceStatictics->sataStatistics.pendingErrorCount,
+                                                "Pending Error Count", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_WORKLOAD_UTILIZATION, generalStatistics,
+                                                deviceStatictics->sataStatistics.workloadUtilization,
+                                                "Workload Utilization", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_UTILIZATION_USAGE_RATE, generalStatistics,
+                                                deviceStatictics->sataStatistics.utilizationUsageRate,
+                                                "Utilization Usage Rate", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SATA_RESOURCE_AVAILABILITY, generalStatistics,
+                                                deviceStatictics->sataStatistics.resourceAvailability,
+                                                "Resource Availability", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SATA_RANDOM_WRITE_RESOURCE_USED, generalStatistics,
+                                                deviceStatictics->sataStatistics.randomWriteResourcesUsed,
+                                                "Random Write Resources Used", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sataStatistics.freeFallStatisticsSupported)
     {
         atleastOneStatisticsAvailable   = true;
         json_object* freeFallStatistics = json_object_new_object();
+        if (freeFallStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Free Fall Statistics", freeFallStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, freeFallStatistics,
-                                  deviceStatictics->sataStatistics.numberOfFreeFallEventsDetected,
-                                  "Number Of Free-Fall Events Detected", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, freeFallStatistics,
-                                  deviceStatictics->sataStatistics.overlimitShockEvents, "Overlimit Shock Events",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Free Fall Statistics", freeFallStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, freeFallStatistics,
+                                                deviceStatictics->sataStatistics.numberOfFreeFallEventsDetected,
+                                                "Number Of Free-Fall Events Detected", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, freeFallStatistics,
+                                                deviceStatictics->sataStatistics.overlimitShockEvents,
+                                                "Overlimit Shock Events", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sataStatistics.rotatingMediaStatisticsSupported)
     {
         atleastOneStatisticsAvailable        = true;
         json_object* rotatingMediaStatistics = json_object_new_object();
+        if (rotatingMediaStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Rotating Media Statistics", rotatingMediaStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.spindleMotorPoweronHours,
-                                  "Spindle Motor Power-On Hours", "hours", false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.headFlyingHours, "Head Flying Hours", "hours",
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.headLoadEvents, "Head Load Events", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.numberOfReallocatedLogicalSectors,
-                                  "Number Of Reallocated Logical Sectors", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.readRecoveryAttempts, "Read Recovery Attempts",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.numberOfMechanicalStartFailures,
-                                  "Number Of Mechanical Start Failures", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.numberOfReallocationCandidateLogicalSectors,
-                                  "Number Of Reallocation Candidate Logical Sectors", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
-                                  deviceStatictics->sataStatistics.numberOfHighPriorityUnloadEvents,
-                                  "Number Of High Priority Unload Events", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Rotating Media Statistics", rotatingMediaStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                                deviceStatictics->sataStatistics.spindleMotorPoweronHours,
+                                                "Spindle Motor Power-On Hours", "hours", false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                                deviceStatictics->sataStatistics.headFlyingHours, "Head Flying Hours",
+                                                "hours", false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                                deviceStatictics->sataStatistics.headLoadEvents, "Head Load Events",
+                                                M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                                deviceStatictics->sataStatistics.numberOfReallocatedLogicalSectors,
+                                                "Number Of Reallocated Logical Sectors", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                                deviceStatictics->sataStatistics.readRecoveryAttempts,
+                                                "Read Recovery Attempts", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                                deviceStatictics->sataStatistics.numberOfMechanicalStartFailures,
+                                                "Number Of Mechanical Start Failures", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                      deviceStatictics->sataStatistics.numberOfReallocationCandidateLogicalSectors,
+                                      "Number Of Reallocation Candidate Logical Sectors", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, rotatingMediaStatistics,
+                                                deviceStatictics->sataStatistics.numberOfHighPriorityUnloadEvents,
+                                                "Number Of High Priority Unload Events", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sataStatistics.generalErrorsStatisticsSupported)
     {
         atleastOneStatisticsAvailable       = true;
         json_object* generalErrorStatistics = json_object_new_object();
+        if (generalErrorStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "General Error Statistics", generalErrorStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalErrorStatistics,
-                                  deviceStatictics->sataStatistics.numberOfReportedUncorrectableErrors,
-                                  "Number Of Reported Uncorrectable Errors", M_NULLPTR, false);
-        create_Node_For_Statistic(
-            STATISTICS_TYPE_COUNT, generalErrorStatistics,
-            deviceStatictics->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion,
-            "Number Of Resets Between Command Acceptance and Completion", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalErrorStatistics,
-                                  deviceStatictics->sataStatistics.physicalElementStatusChanged,
-                                  "Physical Element Status Changed", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "General Error Statistics", generalErrorStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalErrorStatistics,
+                                                deviceStatictics->sataStatistics.numberOfReportedUncorrectableErrors,
+                                                "Number Of Reported Uncorrectable Errors", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(
+                          STATISTICS_TYPE_COUNT, generalErrorStatistics,
+                          deviceStatictics->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion,
+                          "Number Of Resets Between Command Acceptance and Completion", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalErrorStatistics,
+                                                deviceStatictics->sataStatistics.physicalElementStatusChanged,
+                                                "Physical Element Status Changed", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sataStatistics.temperatureStatisticsSupported)
     {
         atleastOneStatisticsAvailable      = true;
         json_object* temperatureStatistics = json_object_new_object();
+        if (temperatureStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Temperature Statistics", temperatureStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.currentTemperature, "Current Temperature", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.averageShortTermTemperature,
-                                  "Average Short Term Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.averageLongTermTemperature,
-                                  "Average Long Term Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.highestTemperature, "Highest Temperature", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.lowestTemperature, "Lowest Temperature", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.highestAverageShortTermTemperature,
-                                  "Highest Average Short Term Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.lowestAverageShortTermTemperature,
-                                  "Lowest Average Short Term Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.highestAverageLongTermTemperature,
-                                  "Highest Average Long Term Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.lowestAverageLongTermTemperature,
-                                  "Lowest Average Long Term Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TIME_MINUTES, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.timeInOverTemperature, "Time In Over Temperature",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.specifiedMaximumOperatingTemperature,
-                                  "Specified Maximum Operating Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TIME_MINUTES, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.timeInUnderTemperature, "Time In Under Temperature",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sataStatistics.specifiedMinimumOperatingTemperature,
-                                  "Specified Minimum Operating Temperature", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Temperature Statistics", temperatureStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.currentTemperature,
+                                                "Current Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.averageShortTermTemperature,
+                                                "Average Short Term Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.averageLongTermTemperature,
+                                                "Average Long Term Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.highestTemperature,
+                                                "Highest Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.lowestTemperature,
+                                                "Lowest Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.highestAverageShortTermTemperature,
+                                                "Highest Average Short Term Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.lowestAverageShortTermTemperature,
+                                                "Lowest Average Short Term Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.highestAverageLongTermTemperature,
+                                                "Highest Average Long Term Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.lowestAverageLongTermTemperature,
+                                                "Lowest Average Long Term Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TIME_MINUTES, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.timeInOverTemperature,
+                                                "Time In Over Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.specifiedMaximumOperatingTemperature,
+                                                "Specified Maximum Operating Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TIME_MINUTES, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.timeInUnderTemperature,
+                                                "Time In Under Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sataStatistics.specifiedMinimumOperatingTemperature,
+                                                "Specified Minimum Operating Temperature", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sataStatistics.transportStatisticsSupported)
     {
         atleastOneStatisticsAvailable    = true;
         json_object* transportStatistics = json_object_new_object();
+        if (transportStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Transport Statistics", transportStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, transportStatistics,
-                                  deviceStatictics->sataStatistics.numberOfHardwareResets, "Number Of Hardware Resets",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, transportStatistics,
-                                  deviceStatictics->sataStatistics.numberOfASREvents, "Number Of ASR Events", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, transportStatistics,
-                                  deviceStatictics->sataStatistics.numberOfInterfaceCRCErrors,
-                                  "Number Of Interface CRC Errors", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Transport Statistics", transportStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, transportStatistics,
+                                                deviceStatictics->sataStatistics.numberOfHardwareResets,
+                                                "Number Of Hardware Resets", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, transportStatistics,
+                                                deviceStatictics->sataStatistics.numberOfASREvents,
+                                                "Number Of ASR Events", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, transportStatistics,
+                                                deviceStatictics->sataStatistics.numberOfInterfaceCRCErrors,
+                                                "Number Of Interface CRC Errors", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sataStatistics.ssdStatisticsSupported)
     {
         atleastOneStatisticsAvailable = true;
         json_object* ssdStatistics    = json_object_new_object();
+        if (ssdStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Solid State Device Statistics", ssdStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, ssdStatistics,
-                                  deviceStatictics->sataStatistics.percentageUsedIndicator, "Percent Used Indicator",
-                                  "%", false);
-
-        json_object_object_add(rootNode, "Solid State Device Statistics", ssdStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, ssdStatistics,
+                                                deviceStatictics->sataStatistics.percentageUsedIndicator,
+                                                "Percent Used Indicator", "%", false));
     }
 
     if (deviceStatictics->sataStatistics.zonedDeviceStatisticsSupported)
     {
         atleastOneStatisticsAvailable      = true;
         json_object* zonedDeviceStatistics = json_object_new_object();
+        if (zonedDeviceStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Zoned Device Statistics", zonedDeviceStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.maximumExplicitlyOpenZones,
-                                  "Maximum Explicitly Open Zones", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.maximumImplicitlyOpenZones,
-                                  "Maximum Implicitly Open Zones", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.maximumNonSequentialZones,
-                                  "Maximum Non-sequential Zones", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.zonesEmptied, "Zones Emptied", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.commandsExceedingOptimalLimit,
-                                  "Commands Exceeding Optimal Limit", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.failedExplicitOpens, "Failed Explicit Opens",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.readRuleViolations, "Read Rule Violations",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sataStatistics.writeRuleViolations, "Write Rule Violations",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Zoned Device Statistics", zonedDeviceStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.maximumOpenZones, "Maximum Open Zones",
+                                                M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.maximumExplicitlyOpenZones,
+                                                "Maximum Explicitly Open Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.maximumImplicitlyOpenZones,
+                                                "Maximum Implicitly Open Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.minimumEmptyZones,
+                                                "Minumum Empty Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.maximumNonSequentialZones,
+                                                "Maximum Non-sequential Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.zonesEmptied, "Zones Emptied",
+                                                M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.suboptimalWriteCommands,
+                                                "Suboptimal Write Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.commandsExceedingOptimalLimit,
+                                                "Commands Exceeding Optimal Limit", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.failedExplicitOpens,
+                                                "Failed Explicit Opens", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.readRuleViolations,
+                                                "Read Rule Violations", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sataStatistics.writeRuleViolations,
+                                                "Write Rule Violations", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sataStatistics.vendorSpecificStatisticsSupported)
     {
+        DECLARE_ZERO_INIT_ARRAY(char, statisticName, 30);
+        if (SEAGATE == is_Seagate_Family(device))
+        {
+            M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(statisticName, 30, "Seagate Specific Statistics"),
+                                   "27 literal characters + NUL = 28 bytes < 30");
+        }
+        else
+        {
+            M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(statisticName, 30, "Vendor Specific Statistics"),
+                                   "26 literal characters + NUL = 27 bytes < 30");
+        }
         json_object* vendorSpecificStatistics = json_object_new_object();
+        if (vendorSpecificStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(rootNode,
+                                                    add_JSON_Object(rootNode, statisticName, vendorSpecificStatistics));
 
         for (uint8_t vendorSpecificIter = 0, statisticsFound = 0;
              vendorSpecificIter < 64 &&
@@ -870,37 +1058,32 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(const tDevice*
                     switch (vendorSpecificIter + 1)
                     {
                     case 1: // pressure
-                        snprintf_err_handle(statisticName, 64, "Pressure Min/Max Reached");
+                        M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(statisticName, 64, "Pressure Min/Max Reached"),
+                                               "24 literal characters + NUL = 25 bytes < 64");
                         break;
                     default:
-                        snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8,
-                                            vendorSpecificIter + 1);
+                        M_IGNORE_SAFE_INT_CALL(
+                            snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8,
+                                                vendorSpecificIter + 1),
+                            "25 literal characters + max 3 (PRIu8, values <= 64) + NUL = 29 bytes < 64");
                         break;
                     }
                 }
                 else
                 {
-                    snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
+                    M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8,
+                                                               vendorSpecificIter + 1),
+                                           "25 literal characters + max 3 (PRIu8, values <= 64) + NUL = 29 bytes < 64");
                 }
 
-                create_Node_For_Statistic(STATISTICS_TYPE_COUNT, vendorSpecificStatistics,
-                                          deviceStatictics->sataStatistics.vendorSpecificStatistics[vendorSpecificIter],
-                                          statisticName, M_NULLPTR, false);
+                RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                    rootNode, create_Node_For_Statistic(
+                                  STATISTICS_TYPE_COUNT, vendorSpecificStatistics,
+                                  deviceStatictics->sataStatistics.vendorSpecificStatistics[vendorSpecificIter],
+                                  statisticName, M_NULLPTR, false));
                 ++statisticsFound;
             }
         }
-
-        DECLARE_ZERO_INIT_ARRAY(char, statisticName, 30);
-        if (SEAGATE == is_Seagate_Family(device))
-        {
-            snprintf_err_handle(statisticName, 30, "Seagate Specific Statistics");
-        }
-        else
-        {
-            snprintf_err_handle(statisticName, 30, "Vendor Specific Statistics");
-        }
-
-        json_object_object_add(rootNode, statisticName, vendorSpecificStatistics);
     }
 
     if (seagateDeviceStatisticsAvailable)
@@ -911,171 +1094,198 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(const tDevice*
             atleastOneStatisticsAvailable = true;
 
             json_object* segateDeviceStatistics = json_object_new_object();
+            if (segateDeviceStatistics == M_NULLPTR)
+            {
+                json_object_put(rootNode);
+                return MEMORY_FAILURE;
+            }
+            RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                rootNode, add_JSON_Object(rootNode, "Seagate Device Statistics", segateDeviceStatistics));
 
             for (uint8_t logEntry = 0; logEntry < maxLogEntries; ++logEntry)
             {
                 switch (logEntry)
                 {
                 case 0:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeCryptoErasePassCount,
-                        "Sanitize Crypto Erase Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeCryptoErasePassCount,
+                                      "Sanitize Crypto Erase Count"));
                     break;
 
                 case 1:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeCryptoErasePassTimeStamp,
-                        "Sanitize Crypto Erase Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeCryptoErasePassTimeStamp,
+                                      "Sanitize Crypto Erase Timestamp"));
                     break;
 
                 case 2:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeOverwriteErasePassCount,
-                        "Sanitize Overwrite Erase Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeOverwriteErasePassCount,
+                                      "Sanitize Overwrite Erase Count"));
                     break;
 
                 case 3:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeOverwriteErasePassTimeStamp,
-                        "Sanitize Overwrite Erase Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeOverwriteErasePassTimeStamp,
+                                      "Sanitize Overwrite Erase Timestamp"));
                     break;
 
                 case 4:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeBlockErasePassCount,
-                        "Sanitize Block Erase Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeBlockErasePassCount,
+                                      "Sanitize Block Erase Count"));
                     break;
 
                 case 5:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeBlockErasePassTimeStamp,
-                        "Sanitize Block Erase Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeBlockErasePassTimeStamp,
+                                      "Sanitize Block Erase Timestamp"));
                     break;
 
                 case 6:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitPassCount,
-                        "ATA Security Erase Unit Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitPassCount,
+                                      "ATA Security Erase Unit Count"));
                     break;
 
                 case 7:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitPassTimeStamp,
-                        "ATA Security Erase Unit Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitPassTimeStamp,
+                                      "ATA Security Erase Unit Timestamp"));
                     break;
 
                 case 8:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.eraseSecurityFileFailureCount,
-                        "Erase Security File Failure Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.eraseSecurityFileFailureCount,
+                                      "Erase Security File Failure Count"));
                     break;
 
                 case 9:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.eraseSecurityFileFailureTimeStamp,
-                        "Erase Security File Failure Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.eraseSecurityFileFailureTimeStamp,
+                                      "Erase Security File Failure Timestamp"));
                     break;
 
                 case 10:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedPassCount,
-                        "ATA Security Erase Unit Enhanced Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedPassCount,
+                                      "ATA Security Erase Unit Enhanced Count"));
                     break;
 
                 case 11:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp,
-                        "ATA Security Erase Unit Enhanced Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp,
+                                      "ATA Security Erase Unit Enhanced Timestamp"));
                     break;
 
                 case 12:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeCryptoEraseFailCount,
-                        "Sanitize Crypto Erase Failure Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeCryptoEraseFailCount,
+                                      "Sanitize Crypto Erase Failure Count"));
                     break;
 
                 case 13:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeCryptoEraseFailTimeStamp,
-                        "Sanitize Crypto Erase Failure Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeCryptoEraseFailTimeStamp,
+                                      "Sanitize Crypto Erase Failure Timestamp"));
                     break;
 
                 case 14:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeOverwriteEraseFailCount,
-                        "Sanitize Overwrite Erase Failure Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeOverwriteEraseFailCount,
+                                      "Sanitize Overwrite Erase Failure Count"));
                     break;
 
                 case 15:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeOverwriteEraseFailTimeStamp,
-                        "Sanitize Overwrite Erase Failure Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeOverwriteEraseFailTimeStamp,
+                                      "Sanitize Overwrite Erase Failure Timestamp"));
                     break;
 
                 case 16:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeBlockEraseFailCount,
-                        "Sanitize Block Erase Failure Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeBlockEraseFailCount,
+                                      "Sanitize Block Erase Failure Count"));
                     break;
 
                 case 17:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.sanitizeBlockEraseFailTimeStamp,
-                        "Sanitize Block Erase Failure Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.sanitizeBlockEraseFailTimeStamp,
+                                      "Sanitize Block Erase Failure Timestamp"));
                     break;
 
                 case 18:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitFailCount,
-                        "ATA Security Erase Unit Failure Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitFailCount,
+                                      "ATA Security Erase Unit Failure Count"));
                     break;
 
                 case 19:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitFailTimeStamp,
-                        "ATA Security Erase Unit Failure Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitFailTimeStamp,
+                                      "ATA Security Erase Unit Failure Timestamp"));
                     break;
 
                 case 20:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedFailCount,
-                        "ATA Security Erase Unit Enhanced Failure Count");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedFailCount,
+                                      "ATA Security Erase Unit Enhanced Failure Count"));
                     break;
 
                 case 21:
-                    create_Node_For_Seagate_Statistic(
-                        STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                        seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp,
-                        "ATA Security Erase Unit Enhanced Failure Timestamp");
+                    RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                        rootNode, create_Node_For_Seagate_Statistic(
+                                      STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                      seagateDeviceStatistics->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp,
+                                      "ATA Security Erase Unit Enhanced Failure Timestamp"));
                     break;
 
                 default:
                     break;
                 }
             }
-
-            json_object_object_add(rootNode, "Seagate Device Statistics", segateDeviceStatistics);
         }
     }
 
@@ -1100,13 +1310,14 @@ static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(const tDevice*
     return ret;
 }
 
-static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(const tDevice*             device,
-                                                                   ptrDeviceStatistics        deviceStatictics,
-                                                                   ptrSeagateDeviceStatistics seagateDeviceStatistics,
-                                                                   bool        seagateDeviceStatisticsAvailable,
-                                                                   const char* utilityName,
-                                                                   const char* buildVersion,
-                                                                   char**      jsonFormat)
+M_NODISCARD static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(
+    const tDevice*             device,
+    ptrDeviceStatistics        deviceStatictics,
+    ptrSeagateDeviceStatistics seagateDeviceStatistics,
+    bool                       seagateDeviceStatisticsAvailable,
+    const char*                utilityName,
+    const char*                buildVersion,
+    char**                     jsonFormat)
 {
     eReturnValues ret                           = NOT_SUPPORTED;
     bool          atleastOneStatisticsAvailable = false;
@@ -1121,609 +1332,898 @@ static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(const tDevice
     if (rootNode == M_NULLPTR)
         return MEMORY_FAILURE;
 
-    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
-                                    DEVICE_STATISTICS_JSON_VERSION);
-    create_Node_For_Drive_Information(rootNode, device);
+    if (create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Device Statistics",
+                                        DEVICE_STATISTICS_JSON_VERSION) != SUCCESS ||
+        create_Node_For_Drive_Information(rootNode, device) != SUCCESS)
+    {
+        json_object_put(rootNode);
+        return MEMORY_FAILURE;
+    }
 
     if (deviceStatictics->sasStatistics.writeErrorCountersSupported)
     {
         atleastOneStatisticsAvailable             = true;
         json_object* writeErrorCountersStatistics = json_object_new_object();
+        if (writeErrorCountersStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Write Error Counters", writeErrorCountersStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay,
-                                  "Write Errors Corrected Without Substantial Delay", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.writeErrorsCorrectedWithPossibleDelays,
-                                  "Write Errors Corrected With Possible Delay", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.writeTotalReWrites, "Write Total Rewrites", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.writeErrorsCorrected, "Write Errors Corrected",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed,
-                                  "Write Total Times Corrective Algorithm Processed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.writeTotalBytesProcessed,
-                                  "Write Total Bytes Processed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.writeTotalUncorrectedErrors,
-                                  "Write Total Uncorrected Errors", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Write Error Counters", writeErrorCountersStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay,
+                                      "Write Errors Corrected Without Substantial Delay", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.writeErrorsCorrectedWithPossibleDelays,
+                                                "Write Errors Corrected With Possible Delay", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.writeTotalReWrites,
+                                                "Write Total Rewrites", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.writeErrorsCorrected,
+                                                "Write Errors Corrected", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed,
+                                      "Write Total Times Corrective Algorithm Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.writeTotalBytesProcessed,
+                                                "Write Total Bytes Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, writeErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.writeTotalUncorrectedErrors,
+                                                "Write Total Uncorrected Errors", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.readErrorCountersSupported)
     {
         atleastOneStatisticsAvailable            = true;
         json_object* readErrorCountersStatistics = json_object_new_object();
+        if (readErrorCountersStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Read Error Counters", readErrorCountersStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readErrorsCorrectedWithPossibleDelays,
-                                  "Read Errors Corrected With Possible Delay", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readTotalRereads, "Read Total Rereads", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readErrorsCorrected, "Read Errors Corrected",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed,
-                                  "Read Total Times Corrective Algorithm Processed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readTotalBytesProcessed, "Read Total Bytes Processed",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readTotalUncorrectedErrors,
-                                  "Read Total Uncorrected Errors", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Read Error Counters", readErrorCountersStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readErrorsCorrectedWithPossibleDelays,
+                                                "Read Errors Corrected With Possible Delay", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readTotalRereads, "Read Total Rereads",
+                                                M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readErrorsCorrected,
+                                                "Read Errors Corrected", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed,
+                                      "Read Total Times Corrective Algorithm Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readTotalBytesProcessed,
+                                                "Read Total Bytes Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readTotalUncorrectedErrors,
+                                                "Read Total Uncorrected Errors", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.readReverseErrorCountersSupported)
     {
         atleastOneStatisticsAvailable                   = true;
         json_object* readReverseErrorCountersStatistics = json_object_new_object();
+        if (readReverseErrorCountersStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Read Reverse Error Counters", readReverseErrorCountersStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay,
-                                  "Read Reverse Errors Corrected Without Substantial Delay", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays,
-                                  "Read Reverse Errors Corrected With Possible Delay", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readReverseTotalReReads, "Read Reverse Total Rereads",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readReverseErrorsCorrected,
-                                  "Read Reverse Errors Corrected", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed,
-                                  "Read Reverse Total Times Corrective Algorithm Processed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readReverseTotalBytesProcessed,
-                                  "Read Reverse Total Bytes Processed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.readReverseTotalUncorrectedErrors,
-                                  "Read Reverse Total Uncorrected Errors", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Read Reverse Error Counters", readReverseErrorCountersStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay,
+                                      "Read Reverse Errors Corrected Without Substantial Delay", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays,
+                                      "Read Reverse Errors Corrected With Possible Delay", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readReverseTotalReReads,
+                                                "Read Reverse Total Rereads", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readReverseErrorsCorrected,
+                                                "Read Reverse Errors Corrected", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed,
+                                      "Read Reverse Total Times Corrective Algorithm Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readReverseTotalBytesProcessed,
+                                                "Read Reverse Total Bytes Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, readReverseErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.readReverseTotalUncorrectedErrors,
+                                                "Read Reverse Total Uncorrected Errors", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.verifyErrorCountersSupported)
     {
         atleastOneStatisticsAvailable              = true;
         json_object* verifyErrorCountersStatistics = json_object_new_object();
+        if (verifyErrorCountersStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Verify Error Counters", verifyErrorCountersStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay,
-                                  "Verify Errors Corrected Without Substantial Delay", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.verifyErrorsCorrectedWithPossibleDelays,
-                                  "Verify Errors Corrected With Possible Delay", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.verifyTotalReVerifies, "Verify Total Rereads",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.verifyErrorsCorrected, "Verify Errors Corrected",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed,
-                                  "Verify Total Times Corrective Algorithm Processed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.verifyTotalBytesProcessed,
-                                  "Verify Total Bytes Processed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
-                                  deviceStatictics->sasStatistics.verifyTotalUncorrectedErrors,
-                                  "Verify Total Uncorrected Errors", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Verify Error Counters", verifyErrorCountersStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay,
+                                      "Verify Errors Corrected Without Substantial Delay", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.verifyErrorsCorrectedWithPossibleDelays,
+                                                "Verify Errors Corrected With Possible Delay", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.verifyTotalReVerifies,
+                                                "Verify Total Rereads", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.verifyErrorsCorrected,
+                                                "Verify Errors Corrected", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
+                                      deviceStatictics->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed,
+                                      "Verify Total Times Corrective Algorithm Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.verifyTotalBytesProcessed,
+                                                "Verify Total Bytes Processed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, verifyErrorCountersStatistics,
+                                                deviceStatictics->sasStatistics.verifyTotalUncorrectedErrors,
+                                                "Verify Total Uncorrected Errors", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.nonMediumErrorSupported)
     {
         atleastOneStatisticsAvailable         = true;
         json_object* nonMediumErrorStatistics = json_object_new_object();
+        if (nonMediumErrorStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Non Medium Error", nonMediumErrorStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, nonMediumErrorStatistics,
-                                  deviceStatictics->sasStatistics.nonMediumErrorCount, "Non-Medium Error Count",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Non Medium Error", nonMediumErrorStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, nonMediumErrorStatistics,
+                                                deviceStatictics->sasStatistics.nonMediumErrorCount,
+                                                "Non-Medium Error Count", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.formatStatusSupported)
     {
         atleastOneStatisticsAvailable       = true;
         json_object* formatStatusStatistics = json_object_new_object();
+        if (formatStatusStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(rootNode,
+                                                    add_JSON_Object(rootNode, "Format Status", formatStatusStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
-                                  deviceStatictics->sasStatistics.grownDefectsDuringCertification,
-                                  "Grown Defects During Certification", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
-                                  deviceStatictics->sasStatistics.totalBlocksReassignedDuringFormat,
-                                  "Total Blocks Reassigned During Format", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
-                                  deviceStatictics->sasStatistics.totalNewBlocksReassigned,
-                                  "Total New Blocks Reassigned", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
-                                  deviceStatictics->sasStatistics.powerOnMinutesSinceFormat,
-                                  "Power On Minutes Since Last Format", "minutes", false);
-
-        json_object_object_add(rootNode, "Format Status", formatStatusStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
+                                                deviceStatictics->sasStatistics.grownDefectsDuringCertification,
+                                                "Grown Defects During Certification", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
+                                                deviceStatictics->sasStatistics.totalBlocksReassignedDuringFormat,
+                                                "Total Blocks Reassigned During Format", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
+                                                deviceStatictics->sasStatistics.totalNewBlocksReassigned,
+                                                "Total New Blocks Reassigned", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, formatStatusStatistics,
+                                                deviceStatictics->sasStatistics.powerOnMinutesSinceFormat,
+                                                "Power On Minutes Since Last Format", "minutes", false));
     }
 
     if (deviceStatictics->sasStatistics.logicalBlockProvisioningSupported)
     {
         atleastOneStatisticsAvailable                   = true;
         json_object* logicalBlockProvisioningStatistics = json_object_new_object();
+        if (logicalBlockProvisioningStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Logical Block Provisioning", logicalBlockProvisioningStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
-                                  deviceStatictics->sasStatistics.availableLBAMappingresourceCount,
-                                  "Available LBA Mapping Resource Count", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
-                                  deviceStatictics->sasStatistics.usedLBAMappingResourceCount,
-                                  "Used LBA Mapping Resource Count", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
-                                  deviceStatictics->sasStatistics.availableProvisioningResourcePercentage,
-                                  "Available Provisioning Resource Percentage", "%", false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
-                                  deviceStatictics->sasStatistics.deduplicatedLBAResourceCount,
-                                  "De-duplicted LBA Resource Count", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
-                                  deviceStatictics->sasStatistics.compressedLBAResourceCount,
-                                  "Compressed LBA Resource Count", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
-                                  deviceStatictics->sasStatistics.totalEfficiencyLBAResourceCount,
-                                  "Total Efficiency LBA Resource Count", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Logical Block Provisioning", logicalBlockProvisioningStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
+                                                deviceStatictics->sasStatistics.availableLBAMappingresourceCount,
+                                                "Available LBA Mapping Resource Count", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
+                                                deviceStatictics->sasStatistics.usedLBAMappingResourceCount,
+                                                "Used LBA Mapping Resource Count", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
+                                                deviceStatictics->sasStatistics.availableProvisioningResourcePercentage,
+                                                "Available Provisioning Resource Percentage", "%", false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
+                                                deviceStatictics->sasStatistics.deduplicatedLBAResourceCount,
+                                                "De-duplicted LBA Resource Count", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
+                                                deviceStatictics->sasStatistics.compressedLBAResourceCount,
+                                                "Compressed LBA Resource Count", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, logicalBlockProvisioningStatistics,
+                                                deviceStatictics->sasStatistics.totalEfficiencyLBAResourceCount,
+                                                "Total Efficiency LBA Resource Count", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.temperatureSupported)
     {
         atleastOneStatisticsAvailable      = true;
         json_object* temperatureStatistics = json_object_new_object();
+        if (temperatureStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(rootNode,
+                                                    add_JSON_Object(rootNode, "Temperature", temperatureStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sasStatistics.temperature, "Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
-                                  deviceStatictics->sasStatistics.referenceTemperature, "Reference Temperature",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Temperature", temperatureStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                      deviceStatictics->sasStatistics.temperature, "Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_TEMPERATURE, temperatureStatistics,
+                                                deviceStatictics->sasStatistics.referenceTemperature,
+                                                "Reference Temperature", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.environmentReportingSupported)
     {
         atleastOneStatisticsAvailable                 = true;
         json_object* environmentalReportingStatistics = json_object_new_object();
+        if (environmentalReportingStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Environmental Reporting", environmentalReportingStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.currentTemperature, "Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.lifetimeMaximumTemperature,
-                                  "Lifetime Maximum Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.lifetimeMinimumTemperature,
-                                  "Lifetime Minimum Temperature", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.maximumTemperatureSincePowerOn,
-                                  "Maximum Temperature Since Power On", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.minimumTemperatureSincePowerOn,
-                                  "Minimum Temperature Since Power On", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.maximumOtherTemperature, "Maximum Other Temperature",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.minimumOtherTemperature, "Minimum Other Temperature",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.currentRelativeHumidity, "Relative Humidity",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.lifetimeMaximumRelativeHumidity,
-                                  "Lifetime Maximum Relative Humidity", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.lifetimeMinumumRelativeHumidity,
-                                  "Lifetime Minimum Relative Humidity", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.maximumRelativeHumiditySincePoweron,
-                                  "Maximum Relative Humidity Since Power On", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.minimumRelativeHumiditySincePoweron,
-                                  "Minimum Relative Humidity Since Power On", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.maximumOtherRelativeHumidity,
-                                  "Maximum Other Relative Humidity", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
-                                  deviceStatictics->sasStatistics.minimumOtherRelativeHumidity,
-                                  "Minimum Other Relative Humidity", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Environmental Reporting", environmentalReportingStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(
+                          STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
+                          deviceStatictics->sasStatistics.currentTemperature, "Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
+                                      deviceStatictics->sasStatistics.lifetimeMaximumTemperature,
+                                      "Lifetime Maximum Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
+                                      deviceStatictics->sasStatistics.lifetimeMinimumTemperature,
+                                      "Lifetime Minimum Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
+                                      deviceStatictics->sasStatistics.maximumTemperatureSincePowerOn,
+                                      "Maximum Temperature Since Power On", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
+                                      deviceStatictics->sasStatistics.minimumTemperatureSincePowerOn,
+                                      "Minimum Temperature Since Power On", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
+                                      deviceStatictics->sasStatistics.maximumOtherTemperature,
+                                      "Maximum Other Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalReportingStatistics,
+                                      deviceStatictics->sasStatistics.minimumOtherTemperature,
+                                      "Minimum Other Temperature", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
+                                                deviceStatictics->sasStatistics.currentRelativeHumidity,
+                                                "Relative Humidity", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
+                                                deviceStatictics->sasStatistics.lifetimeMaximumRelativeHumidity,
+                                                "Lifetime Maximum Relative Humidity", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
+                                                deviceStatictics->sasStatistics.lifetimeMinumumRelativeHumidity,
+                                                "Lifetime Minimum Relative Humidity", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
+                                                deviceStatictics->sasStatistics.maximumRelativeHumiditySincePoweron,
+                                                "Maximum Relative Humidity Since Power On", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
+                                                deviceStatictics->sasStatistics.minimumRelativeHumiditySincePoweron,
+                                                "Minimum Relative Humidity Since Power On", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
+                                                deviceStatictics->sasStatistics.maximumOtherRelativeHumidity,
+                                                "Maximum Other Relative Humidity", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalReportingStatistics,
+                                                deviceStatictics->sasStatistics.minimumOtherRelativeHumidity,
+                                                "Minimum Other Relative Humidity", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.environmentReportingSupported)
     {
         atleastOneStatisticsAvailable              = true;
         json_object* environmentalLimitsStatistics = json_object_new_object();
+        if (environmentalLimitsStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Environmental Limits", environmentalLimitsStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highCriticalTemperatureLimitTrigger,
-                                  "High Critical Temperature Limit Trigger", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highCriticalTemperatureLimitReset,
-                                  "High Critical Temperature Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowCriticalTemperatureLimitReset,
-                                  "Low Critical Temperature Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowCriticalTemperatureLimitTrigger,
-                                  "Low Critical Temperature Limit Trigger", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highOperatingTemperatureLimitTrigger,
-                                  "High Operating Temperature Limit Trigger", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highOperatingTemperatureLimitReset,
-                                  "High Operating Temperature Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowOperatingTemperatureLimitReset,
-                                  "Low Operating Temperature Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowOperatingTemperatureLimitTrigger,
-                                  "Low Operating Temperature Limit Trigger", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highCriticalHumidityLimitTrigger,
-                                  "High Critical Relative Humidity Limit Trigger", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highCriticalHumidityLimitReset,
-                                  "High Critical Relative Humidity Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowCriticalHumidityLimitReset,
-                                  "Low Critical Relative Humidity Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowCriticalHumidityLimitTrigger,
-                                  "Low Critical Relative Humidity Limit Trigger", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highOperatingHumidityLimitTrigger,
-                                  "High Operating Relative Humidity Limit Trigger", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.highOperatingHumidityLimitReset,
-                                  "High Operating Relative Humidity Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowOperatingHumidityLimitReset,
-                                  "Low Operating Relative Humidity Limit Reset", M_NULLPTR, true);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
-                                  deviceStatictics->sasStatistics.lowOperatingHumidityLimitTrigger,
-                                  "Low Operating Relative Humidity Limit Trigger", M_NULLPTR, true);
-
-        json_object_object_add(rootNode, "Environmental Limits", environmentalLimitsStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.highCriticalTemperatureLimitTrigger,
+                                      "High Critical Temperature Limit Trigger", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.highCriticalTemperatureLimitReset,
+                                      "High Critical Temperature Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.lowCriticalTemperatureLimitReset,
+                                      "Low Critical Temperature Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.lowCriticalTemperatureLimitTrigger,
+                                      "Low Critical Temperature Limit Trigger", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.highOperatingTemperatureLimitTrigger,
+                                      "High Operating Temperature Limit Trigger", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.highOperatingTemperatureLimitReset,
+                                      "High Operating Temperature Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.lowOperatingTemperatureLimitReset,
+                                      "Low Operating Temperature Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_SCSI_ENVIRONMENTAL_TEMPERATURE, environmentalLimitsStatistics,
+                                      deviceStatictics->sasStatistics.lowOperatingTemperatureLimitTrigger,
+                                      "Low Operating Temperature Limit Trigger", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.highCriticalHumidityLimitTrigger,
+                                                "High Critical Relative Humidity Limit Trigger", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.highCriticalHumidityLimitReset,
+                                                "High Critical Relative Humidity Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.lowCriticalHumidityLimitReset,
+                                                "Low Critical Relative Humidity Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.lowCriticalHumidityLimitTrigger,
+                                                "Low Critical Relative Humidity Limit Trigger", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.highOperatingHumidityLimitTrigger,
+                                                "High Operating Relative Humidity Limit Trigger", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.highOperatingHumidityLimitReset,
+                                                "High Operating Relative Humidity Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.lowOperatingHumidityLimitReset,
+                                                "Low Operating Relative Humidity Limit Reset", M_NULLPTR, true));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_HUMIDITY, environmentalLimitsStatistics,
+                                                deviceStatictics->sasStatistics.lowOperatingHumidityLimitTrigger,
+                                                "Low Operating Relative Humidity Limit Trigger", M_NULLPTR, true));
     }
 
     if (deviceStatictics->sasStatistics.startStopCycleCounterSupported)
     {
         atleastOneStatisticsAvailable                = true;
         json_object* startStopCycleCounterStatistics = json_object_new_object();
+        if (startStopCycleCounterStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Start-Stop Cycle Counter", startStopCycleCounterStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_DATE, startStopCycleCounterStatistics,
-                                  deviceStatictics->sasStatistics.dateOfManufacture, "Date Of Manufacture", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_DATE, startStopCycleCounterStatistics,
-                                  deviceStatictics->sasStatistics.accountingDate, "Accounting Date", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
-                                  deviceStatictics->sasStatistics.specifiedCycleCountOverDeviceLifetime,
-                                  "Specified Cycle Count Over Device Lifetime", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
-                                  deviceStatictics->sasStatistics.accumulatedStartStopCycles,
-                                  "Accumulated Start-Stop Cycles", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
-                                  deviceStatictics->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime,
-                                  "Specified Load-Unload Count Over Device Lifetime", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
-                                  deviceStatictics->sasStatistics.accumulatedLoadUnloadCycles,
-                                  "Accumulated Load-Unload Cycles", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Start-Stop Cycle Counter", startStopCycleCounterStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_DATE, startStopCycleCounterStatistics,
+                                                deviceStatictics->sasStatistics.dateOfManufacture,
+                                                "Date Of Manufacture", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_DATE, startStopCycleCounterStatistics,
+                                                deviceStatictics->sasStatistics.accountingDate, "Accounting Date",
+                                                M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
+                                                deviceStatictics->sasStatistics.specifiedCycleCountOverDeviceLifetime,
+                                                "Specified Cycle Count Over Device Lifetime", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
+                                                deviceStatictics->sasStatistics.accumulatedStartStopCycles,
+                                                "Accumulated Start-Stop Cycles", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
+                                      deviceStatictics->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime,
+                                      "Specified Load-Unload Count Over Device Lifetime", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, startStopCycleCounterStatistics,
+                                                deviceStatictics->sasStatistics.accumulatedLoadUnloadCycles,
+                                                "Accumulated Load-Unload Cycles", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.powerConditionTransitionsSupported)
     {
         atleastOneStatisticsAvailable                   = true;
         json_object* powerConditionTransitionStatistics = json_object_new_object();
+        if (powerConditionTransitionStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Power Condition Transitions", powerConditionTransitionStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
-                                  deviceStatictics->sasStatistics.transitionsToActive,
-                                  "Accumulated Transitions to Active", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
-                                  deviceStatictics->sasStatistics.transitionsToIdleA,
-                                  "Accumulated Transitions to Idle A", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
-                                  deviceStatictics->sasStatistics.transitionsToIdleB,
-                                  "Accumulated Transitions to Idle B", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
-                                  deviceStatictics->sasStatistics.transitionsToIdleC,
-                                  "Accumulated Transitions to Idle C", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
-                                  deviceStatictics->sasStatistics.transitionsToStandbyZ,
-                                  "Accumulated Transitions to Standby Z", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
-                                  deviceStatictics->sasStatistics.transitionsToStandbyY,
-                                  "Accumulated Transitions to Standby Y", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Power Condition Transitions", powerConditionTransitionStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
+                                                deviceStatictics->sasStatistics.transitionsToActive,
+                                                "Accumulated Transitions to Active", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
+                                                deviceStatictics->sasStatistics.transitionsToIdleA,
+                                                "Accumulated Transitions to Idle A", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
+                                                deviceStatictics->sasStatistics.transitionsToIdleB,
+                                                "Accumulated Transitions to Idle B", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
+                                                deviceStatictics->sasStatistics.transitionsToIdleC,
+                                                "Accumulated Transitions to Idle C", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
+                                                deviceStatictics->sasStatistics.transitionsToStandbyZ,
+                                                "Accumulated Transitions to Standby Z", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, powerConditionTransitionStatistics,
+                                                deviceStatictics->sasStatistics.transitionsToStandbyY,
+                                                "Accumulated Transitions to Standby Y", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.utilizationSupported)
     {
         atleastOneStatisticsAvailable      = true;
         json_object* utilizationStatistics = json_object_new_object();
+        if (utilizationStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(rootNode,
+                                                    add_JSON_Object(rootNode, "Utilization", utilizationStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_WORKLOAD_UTILIZATION, utilizationStatistics,
-                                  deviceStatictics->sasStatistics.workloadUtilization, "Workload Utilization",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_UTILIZATION_USAGE_RATE, utilizationStatistics,
-                                  deviceStatictics->sasStatistics.utilizationUsageRateBasedOnDateAndTime,
-                                  "Utilization Usage Rate", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Utilization", utilizationStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_WORKLOAD_UTILIZATION, utilizationStatistics,
+                                                deviceStatictics->sasStatistics.workloadUtilization,
+                                                "Workload Utilization", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_UTILIZATION_USAGE_RATE, utilizationStatistics,
+                                                deviceStatictics->sasStatistics.utilizationUsageRateBasedOnDateAndTime,
+                                                "Utilization Usage Rate", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.solidStateMediaSupported)
     {
         atleastOneStatisticsAvailable          = true;
         json_object* solidStateMediaStatistics = json_object_new_object();
+        if (solidStateMediaStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Solid State Media", solidStateMediaStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, solidStateMediaStatistics,
-                                  deviceStatictics->sasStatistics.percentUsedEndurance, "Percent Used Endurance", "%",
-                                  false);
-
-        json_object_object_add(rootNode, "Solid State Media", solidStateMediaStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, solidStateMediaStatistics,
+                                                deviceStatictics->sasStatistics.percentUsedEndurance,
+                                                "Percent Used Endurance", "%", false));
     }
 
     if (deviceStatictics->sasStatistics.backgroundScanResultsSupported)
     {
         atleastOneStatisticsAvailable                = true;
         json_object* backgroundScanResultsStatistics = json_object_new_object();
+        if (backgroundScanResultsStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Background Scan Results", backgroundScanResultsStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, backgroundScanResultsStatistics,
-                                  deviceStatictics->sasStatistics.accumulatedPowerOnMinutes,
-                                  "Accumulated Power On Minutes", "minutes", false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, backgroundScanResultsStatistics,
-                                  deviceStatictics->sasStatistics.numberOfBackgroundScansPerformed,
-                                  "Number Of Background Scans Performed", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, backgroundScanResultsStatistics,
-                                  deviceStatictics->sasStatistics.numberOfBackgroundMediaScansPerformed,
-                                  "Number Of Background Media Scans Performed", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Background Scan Results", backgroundScanResultsStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, backgroundScanResultsStatistics,
+                                                deviceStatictics->sasStatistics.accumulatedPowerOnMinutes,
+                                                "Accumulated Power On Minutes", "minutes", false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, backgroundScanResultsStatistics,
+                                                deviceStatictics->sasStatistics.numberOfBackgroundScansPerformed,
+                                                "Number Of Background Scans Performed", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, backgroundScanResultsStatistics,
+                                                deviceStatictics->sasStatistics.numberOfBackgroundMediaScansPerformed,
+                                                "Number Of Background Media Scans Performed", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.defectStatisticsSupported)
     {
         atleastOneStatisticsAvailable = true;
         json_object* defectStatistics = json_object_new_object();
+        if (defectStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(rootNode,
+                                                    add_JSON_Object(rootNode, "Defect Statistics", defectStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, defectStatistics, deviceStatictics->sasStatistics.grownDefects,
-                                  "Grown Defects", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, defectStatistics,
-                                  deviceStatictics->sasStatistics.primaryDefects, "Primary Defects", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Defect Statistics", defectStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, defectStatistics,
+                                      deviceStatictics->sasStatistics.grownDefects, "Grown Defects", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, defectStatistics,
+                                                deviceStatictics->sasStatistics.primaryDefects, "Primary Defects",
+                                                M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.pendingDefectsSupported)
     {
         atleastOneStatisticsAvailable        = true;
         json_object* pendingDefectStatistics = json_object_new_object();
+        if (pendingDefectStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Pending Defect", pendingDefectStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, pendingDefectStatistics,
-                                  deviceStatictics->sasStatistics.pendingDefectCount, "Pending Defect Count", M_NULLPTR,
-                                  false);
-
-        json_object_object_add(rootNode, "Pending Defect", pendingDefectStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, pendingDefectStatistics,
+                                                deviceStatictics->sasStatistics.pendingDefectCount,
+                                                "Pending Defect Count", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.lpsMisalignmentSupported)
     {
         atleastOneStatisticsAvailable          = true;
         json_object* lpsMisalignmentStatistics = json_object_new_object();
+        if (lpsMisalignmentStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "LPS Misalignment", lpsMisalignmentStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, lpsMisalignmentStatistics,
-                                  deviceStatictics->sasStatistics.lpsMisalignmentCount, "LPS Misalignment Count",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "LPS Misalignment", lpsMisalignmentStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, lpsMisalignmentStatistics,
+                                                deviceStatictics->sasStatistics.lpsMisalignmentCount,
+                                                "LPS Misalignment Count", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.nvCacheSupported)
     {
         atleastOneStatisticsAvailable          = true;
         json_object* lpsMisalignmentStatistics = json_object_new_object();
+        if (lpsMisalignmentStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Non-Volatile Cache", lpsMisalignmentStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_NON_VOLATILE_TIME, lpsMisalignmentStatistics,
-                                  deviceStatictics->sasStatistics.remainingNonvolatileTime,
-                                  "Remaining Non-Volatile Time", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_NON_VOLATILE_TIME, lpsMisalignmentStatistics,
-                                  deviceStatictics->sasStatistics.maximumNonvolatileTime, "Maximum Non-Volatile Time",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Non-Volatile Cache", lpsMisalignmentStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_NON_VOLATILE_TIME, lpsMisalignmentStatistics,
+                                                deviceStatictics->sasStatistics.remainingNonvolatileTime,
+                                                "Remaining Non-Volatile Time", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_NON_VOLATILE_TIME, lpsMisalignmentStatistics,
+                                                deviceStatictics->sasStatistics.maximumNonvolatileTime,
+                                                "Maximum Non-Volatile Time", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.generalStatisticsAndPerformanceSupported)
     {
         atleastOneStatisticsAvailable                = true;
         json_object* generalAndPerformanceStatistics = json_object_new_object();
+        if (generalAndPerformanceStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "General Statistics And Performance", generalAndPerformanceStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfReadCommands, "Number Of Read Commands",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfWriteCommands, "Number Of Write Commands",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfLogicalBlocksReceived,
-                                  "Number Of Logical Blocks Received", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfLogicalBlocksTransmitted,
-                                  "Number Of Logical Blocks Transmitted", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.readCommandProcessingIntervals,
-                                  "Read Command Processing Intervals", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.writeCommandProcessingIntervals,
-                                  "Write Command Processing Intervals", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.weightedNumberOfReadCommandsPlusWriteCommands,
-                                  "Weighted Number Of Read Commands Plus Write Commands", M_NULLPTR, false);
-        create_Node_For_Statistic(
-            STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-            deviceStatictics->sasStatistics.weightedReadCommandProcessingPlusWriteCommandProcessing,
-            "Weighted Number Of Read Command Processing Plus Write Command Processing", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.idleTimeIntervals, "Idle Time Intervals", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_TIME_INTERVAL, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.timeIntervalDescriptor, "Time Interval Desriptor",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfReadFUACommands,
-                                  "Number Of Read FUA Commands", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfWriteFUACommands,
-                                  "Number Of Write FUA Commands", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfReadFUANVCommands,
-                                  "Number Of Read FUA NV Commands", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.numberOfWriteFUANVCommands,
-                                  "Number Of Write FUA NV Commands", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.readFUACommandProcessingIntervals,
-                                  "Read FUA Command Processing Intervals", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.writeFUACommandProcessingIntervals,
-                                  "Write FUA Command Processing Intervals", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.readFUANVCommandProcessingIntervals,
-                                  "Read FUA NV Command Processing Intervals", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
-                                  deviceStatictics->sasStatistics.writeFUANVCommandProcessingIntervals,
-                                  "Write FUA NV Command Processing Intervals", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "General Statistics And Performance", generalAndPerformanceStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfReadCommands,
+                                                "Number Of Read Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfWriteCommands,
+                                                "Number Of Write Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfLogicalBlocksReceived,
+                                                "Number Of Logical Blocks Received", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfLogicalBlocksTransmitted,
+                                                "Number Of Logical Blocks Transmitted", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.readCommandProcessingIntervals,
+                                                "Read Command Processing Intervals", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.writeCommandProcessingIntervals,
+                                                "Write Command Processing Intervals", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                      deviceStatictics->sasStatistics.weightedNumberOfReadCommandsPlusWriteCommands,
+                                      "Weighted Number Of Read Commands Plus Write Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(
+                STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                deviceStatictics->sasStatistics.weightedReadCommandProcessingPlusWriteCommandProcessing,
+                "Weighted Number Of Read Command Processing Plus Write Command Processing", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.idleTimeIntervals,
+                                                "Idle Time Intervals", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_TIME_INTERVAL, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.timeIntervalDescriptor,
+                                                "Time Interval Desriptor", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfReadFUACommands,
+                                                "Number Of Read FUA Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfWriteFUACommands,
+                                                "Number Of Write FUA Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfReadFUANVCommands,
+                                                "Number Of Read FUA NV Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.numberOfWriteFUANVCommands,
+                                                "Number Of Write FUA NV Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.readFUACommandProcessingIntervals,
+                                                "Read FUA Command Processing Intervals", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.writeFUACommandProcessingIntervals,
+                                                "Write FUA Command Processing Intervals", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.readFUANVCommandProcessingIntervals,
+                                                "Read FUA NV Command Processing Intervals", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, generalAndPerformanceStatistics,
+                                                deviceStatictics->sasStatistics.writeFUANVCommandProcessingIntervals,
+                                                "Write FUA NV Command Processing Intervals", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.cacheMemoryStatisticsSupported)
     {
         atleastOneStatisticsAvailable      = true;
         json_object* cacheMemoryStatistics = json_object_new_object();
+        if (cacheMemoryStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Cache Memory Statistics", cacheMemoryStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
-                                  deviceStatictics->sasStatistics.readCacheMemoryHits, "Read Cache Memory Hits",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
-                                  deviceStatictics->sasStatistics.readsToCacheMemory, "Reads To Cache Memory",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
-                                  deviceStatictics->sasStatistics.writeCacheMemoryHits, "Write Cache Memory Hits",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
-                                  deviceStatictics->sasStatistics.writesFromCacheMemory, "Writes From Cache Memory",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
-                                  deviceStatictics->sasStatistics.timeFromLastHardReset, "Last Hard Reset Intervals",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_SCSI_TIME_INTERVAL, cacheMemoryStatistics,
-                                  deviceStatictics->sasStatistics.cacheTimeInterval, "Cache Memory Time Interval",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Cache Memory Statistics", cacheMemoryStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
+                                                deviceStatictics->sasStatistics.readCacheMemoryHits,
+                                                "Read Cache Memory Hits", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
+                                                deviceStatictics->sasStatistics.readsToCacheMemory,
+                                                "Reads To Cache Memory", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
+                                                deviceStatictics->sasStatistics.writeCacheMemoryHits,
+                                                "Write Cache Memory Hits", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
+                                                deviceStatictics->sasStatistics.writesFromCacheMemory,
+                                                "Writes From Cache Memory", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, cacheMemoryStatistics,
+                                                deviceStatictics->sasStatistics.timeFromLastHardReset,
+                                                "Last Hard Reset Intervals", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_SCSI_TIME_INTERVAL, cacheMemoryStatistics,
+                                                deviceStatictics->sasStatistics.cacheTimeInterval,
+                                                "Cache Memory Time Interval", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.timeStampSupported)
     {
         atleastOneStatisticsAvailable      = true;
         json_object* dateAndTimeStatistics = json_object_new_object();
+        if (dateAndTimeStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(rootNode,
+                                                    add_JSON_Object(rootNode, "Timestamp", dateAndTimeStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP, dateAndTimeStatistics,
-                                  deviceStatictics->sasStatistics.dateAndTimeTimestamp, "Date And Time Timestamp",
-                                  M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Timestamp", dateAndTimeStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_DATA_AND_TIME_TIMESTAMP, dateAndTimeStatistics,
+                                                deviceStatictics->sasStatistics.dateAndTimeTimestamp,
+                                                "Date And Time Timestamp", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.zonedDeviceStatisticsSupported)
     {
         atleastOneStatisticsAvailable      = true;
         json_object* zonedDeviceStatistics = json_object_new_object();
+        if (zonedDeviceStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Zoned Device Statistics", zonedDeviceStatistics));
 
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.maximumExplicitlyOpenZones,
-                                  "Maximum Explicitly Open Zones", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.maximumImplicitlyOpenZones,
-                                  "Maximum Implicitly Open Zones", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.maximumNonSequentialZones,
-                                  "Maximum Non-sequential Zones", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.zonesEmptied, "Zones Emptied", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.commandsExceedingOptimalLimit,
-                                  "Commands Exceeding Optimal Limit", M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.failedExplicitOpens, "Failed Explicit Opens",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.readRuleViolations, "Read Rule Violations", M_NULLPTR,
-                                  false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.writeRuleViolations, "Write Rule Violations",
-                                  M_NULLPTR, false);
-        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
-                                  deviceStatictics->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones,
-                                  "Maximum Implicitly Open Sequential Or Before Required Zones", M_NULLPTR, false);
-
-        json_object_object_add(rootNode, "Zoned Device Statistics", zonedDeviceStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.maximumOpenZones, "Maximum Open Zones",
+                                                M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.maximumExplicitlyOpenZones,
+                                                "Maximum Explicitly Open Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.maximumImplicitlyOpenZones,
+                                                "Maximum Implicitly Open Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.minimumEmptyZones,
+                                                "Minumum Empty Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.maximumNonSequentialZones,
+                                                "Maximum Non-sequential Zones", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                      deviceStatictics->sasStatistics.zonesEmptied, "Zones Emptied", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.suboptimalWriteCommands,
+                                                "Suboptimal Write Commands", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.commandsExceedingOptimalLimit,
+                                                "Commands Exceeding Optimal Limit", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.failedExplicitOpens,
+                                                "Failed Explicit Opens", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.readRuleViolations,
+                                                "Read Rule Violations", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                                deviceStatictics->sasStatistics.writeRuleViolations,
+                                                "Write Rule Violations", M_NULLPTR, false));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Statistic(STATISTICS_TYPE_COUNT, zonedDeviceStatistics,
+                                      deviceStatictics->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones,
+                                      "Maximum Implicitly Open Sequential Or Before Required Zones", M_NULLPTR, false));
     }
 
     if (deviceStatictics->sasStatistics.protocolSpecificStatisticsSupported &&
         deviceStatictics->sasStatistics.protocolStatisticsType == STAT_PROT_SAS)
     {
         json_object* sasProtocolStatistics = json_object_new_object();
+        if (sasProtocolStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "SAS Protocol Statistics", sasProtocolStatistics));
 
         for (uint16_t portIter = 0;
              portIter < SAS_STATISTICS_MAX_PORTS && portIter < deviceStatictics->sasStatistics.sasProtStats.portCount;
@@ -1741,79 +2241,111 @@ static eReturnValues create_JSON_Output_For_SCSI_Device_Statistics(const tDevice
                             .sasPhyStatsValid)
                     {
                         atleastOneStatisticsAvailable = true;
-                        json_object* portPhyNode      = json_object_new_object();
-
-                        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, portPhyNode,
-                                                  deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
-                                                      .perPhy[phyIter]
-                                                      .invalidDWORDCount,
-                                                  "Invalid Dword Count", M_NULLPTR, false);
-                        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, portPhyNode,
-                                                  deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
-                                                      .perPhy[phyIter]
-                                                      .runningDisparityErrorCount,
-                                                  "Running Disparit Error Count", M_NULLPTR, false);
-                        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, portPhyNode,
-                                                  deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
-                                                      .perPhy[phyIter]
-                                                      .lossOfDWORDSynchronizationCount,
-                                                  "Loss of Dword Snchronization Count", M_NULLPTR, false);
-                        create_Node_For_Statistic(STATISTICS_TYPE_COUNT, portPhyNode,
-                                                  deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
-                                                      .perPhy[phyIter]
-                                                      .phyResetProblemCount,
-                                                  "Phy Reset Problem Count", M_NULLPTR, false);
-
                         DECLARE_ZERO_INIT_ARRAY(char, portPhyNameName, 30);
-                        snprintf_err_handle(
-                            portPhyNameName, 30, "Port:%" PRIu16 "-Phy:%" PRIu16 "",
-                            deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID,
-                            deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
-                                .perPhy[phyIter]
-                                .phyID);
-                        json_object_object_add(sasProtocolStatistics, portPhyNameName, portPhyNode);
+                        M_IGNORE_SAFE_INT_CALL(
+                            snprintf_err_handle(
+                                portPhyNameName, 30, "Port:%" PRIu16 "-Phy:%" PRIu16 "",
+                                deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID,
+                                deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
+                                    .perPhy[phyIter]
+                                    .phyID),
+                            "Port: (5) + max 5 (PRIu16) + -Phy: (5) + max 3 (PRIu16 of uint8_t) + NUL = 19 bytes < 30");
+                        json_object* portPhyNode = json_object_new_object();
+                        if (portPhyNode == M_NULLPTR)
+                        {
+                            json_object_put(rootNode);
+                            return MEMORY_FAILURE;
+                        }
+                        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                            rootNode, add_JSON_Object(sasProtocolStatistics, portPhyNameName, portPhyNode));
+
+                        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                            rootNode, create_Node_For_Statistic(
+                                          STATISTICS_TYPE_COUNT, portPhyNode,
+                                          deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
+                                              .perPhy[phyIter]
+                                              .invalidDWORDCount,
+                                          "Invalid Dword Count", M_NULLPTR, false));
+                        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                            rootNode, create_Node_For_Statistic(
+                                          STATISTICS_TYPE_COUNT, portPhyNode,
+                                          deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
+                                              .perPhy[phyIter]
+                                              .runningDisparityErrorCount,
+                                          "Running Disparit Error Count", M_NULLPTR, false));
+                        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                            rootNode, create_Node_For_Statistic(
+                                          STATISTICS_TYPE_COUNT, portPhyNode,
+                                          deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
+                                              .perPhy[phyIter]
+                                              .lossOfDWORDSynchronizationCount,
+                                          "Loss of Dword Snchronization Count", M_NULLPTR, false));
+                        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+                            rootNode, create_Node_For_Statistic(
+                                          STATISTICS_TYPE_COUNT, portPhyNode,
+                                          deviceStatictics->sasStatistics.sasProtStats.sasStatsPerPort[portIter]
+                                              .perPhy[phyIter]
+                                              .phyResetProblemCount,
+                                          "Phy Reset Problem Count", M_NULLPTR, false));
                     }
                 }
             }
         }
-
-        json_object_object_add(rootNode, "SAS Protocol Statistics", sasProtocolStatistics);
     }
 
     if (seagateDeviceStatisticsAvailable)
     {
         atleastOneStatisticsAvailable       = true;
         json_object* segateDeviceStatistics = json_object_new_object();
+        if (segateDeviceStatistics == M_NULLPTR)
+        {
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, add_JSON_Object(rootNode, "Seagate Device Statistics", segateDeviceStatistics));
 
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.sanitizeCryptoEraseCount,
-                                          "Sanitize Crypo Erase Count");
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.sanitizeCryptoEraseTimeStamp,
-                                          "Sanitize Crypo Erase Requested Time");
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                                        seagateDeviceStatistics->sasStatistics.sanitizeCryptoEraseCount,
+                                                        "Sanitize Crypo Erase Count"));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                              seagateDeviceStatistics->sasStatistics.sanitizeCryptoEraseTimeStamp,
+                                              "Sanitize Crypo Erase Requested Time"));
 
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.sanitizeOverwriteEraseCount,
-                                          "Sanitize Overwrite Erase Count");
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.sanitizeOverwriteEraseTimeStamp,
-                                          "Sanitize Overwrite Erase Requested Time");
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                              seagateDeviceStatistics->sasStatistics.sanitizeOverwriteEraseCount,
+                                              "Sanitize Overwrite Erase Count"));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                              seagateDeviceStatistics->sasStatistics.sanitizeOverwriteEraseTimeStamp,
+                                              "Sanitize Overwrite Erase Requested Time"));
 
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.sanitizeBlockEraseCount,
-                                          "Sanitize Block Erase Count");
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.sanitizeBlockEraseTimeStamp,
-                                          "Sanitize Block Erase Requested Time");
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode, create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                                        seagateDeviceStatistics->sasStatistics.sanitizeBlockEraseCount,
+                                                        "Sanitize Block Erase Count"));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                              seagateDeviceStatistics->sasStatistics.sanitizeBlockEraseTimeStamp,
+                                              "Sanitize Block Erase Requested Time"));
 
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.eraseSecurityFileFailureCount,
-                                          "Erase Security File Failures Count");
-        create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
-                                          seagateDeviceStatistics->sasStatistics.eraseSecurityFileFailureTimeStamp,
-                                          "Erase Security File Failures Requested Time");
-
-        json_object_object_add(rootNode, "Seagate Device Statistics", segateDeviceStatistics);
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Seagate_Statistic(STATISTICS_TYPE_COUNT, segateDeviceStatistics,
+                                              seagateDeviceStatistics->sasStatistics.eraseSecurityFileFailureCount,
+                                              "Erase Security File Failures Count"));
+        RETURN_ON_DEVICE_STATISTICS_JSON_ERROR_ROOT(
+            rootNode,
+            create_Node_For_Seagate_Statistic(STATISTICS_TYPE_TIME_MINUTES, segateDeviceStatistics,
+                                              seagateDeviceStatistics->sasStatistics.eraseSecurityFileFailureTimeStamp,
+                                              "Erase Security File Failures Requested Time"));
     }
 
     // Convert JSON object to formatted string
@@ -1848,10 +2380,12 @@ create_JSON_Output_For_Device_Statistics(const tDevice* M_NONNULL              d
 {
     eReturnValues ret = NOT_SUPPORTED;
 
-    if (deviceStatictics == M_NULLPTR)
+    if (device == M_NULLPTR || deviceStatictics == M_NULLPTR || jsonFormat == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+
+    *jsonFormat = M_NULLPTR;
 
     if (get_Device_DriveType(device) == ATA_DRIVE)
     {

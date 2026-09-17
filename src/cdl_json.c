@@ -23,38 +23,67 @@
 
 #define MAX_TIME_UNIT_STRING_LENGHT 10
 
+#define CDL_JSON_SNPRINTF(...)                                                                                         \
+    M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(__VA_ARGS__),                                                           \
+                           "CDL JSON destination buffer is sized for the fixed display format")
+
+M_NODISCARD static eReturnValues add_JSON_Object(json_object* parent, const char* key, json_object* child)
+{
+    if (parent == M_NULLPTR || child == M_NULLPTR)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    if (json_object_object_add(parent, key, child) != 0)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
+
+#define RETURN_ON_CDL_JSON_ERROR(root, expression)                                                                     \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((expression) != SUCCESS)                                                                                   \
+        {                                                                                                              \
+            json_object_put(root);                                                                                     \
+            return MEMORY_FAILURE;                                                                                     \
+        }                                                                                                              \
+    } while (0)
+
 static void translate_TimeUnitType_To_String(eCDLTimeFieldUnitType unitType, char* translatedString)
 {
     switch (unitType)
     {
     case CDL_TIME_FIELD_UNIT_TYPE_SECONDS:
-        snprintf_err_handle(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "s");
+        CDL_JSON_SNPRINTF(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "s");
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_MILLISECONDS:
-        snprintf_err_handle(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "ms");
+        CDL_JSON_SNPRINTF(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "ms");
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_500_NANOSECONDS:
-        snprintf_err_handle(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "500 ns");
+        CDL_JSON_SNPRINTF(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "500 ns");
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_10_MILLISECONDS:
-        snprintf_err_handle(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "10 ms");
+        CDL_JSON_SNPRINTF(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "10 ms");
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_500_MILLISECONDS:
-        snprintf_err_handle(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "500 ms");
+        CDL_JSON_SNPRINTF(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "500 ms");
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_NO_VALUE:
-        snprintf_err_handle(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "NA");
+        CDL_JSON_SNPRINTF(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "NA");
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_MICROSECONDS:
     case CDL_TIME_FIELD_UNIT_TYPE_RESERVED:
     default:
-        snprintf_err_handle(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "us");
+        CDL_JSON_SNPRINTF(translatedString, MAX_TIME_UNIT_STRING_LENGHT, "us");
         break;
     }
 }
@@ -91,99 +120,133 @@ static void translate_String_To_TimeUnitType(const char* unitString, eCDLTimeFie
     }
 }
 
-static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
-                                                           tCDLSettings*  cdlSettings,
-                                                           const char*    logPath)
+M_NODISCARD static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device,
+                                                                       tCDLSettings*  cdlSettings,
+                                                                       const char*    logPath)
 {
     eReturnValues ret = SUCCESS;
 
     // Create a new JSON object
     json_object* rootObj = json_object_new_object();
-    if (rootObj != M_NULLPTR)
+    if (rootObj == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+
     {
         // Add version information
-        json_object_object_add(rootObj, "CDL Feature Version", json_object_new_string(CDL_FEATURE_VERSION));
+        RETURN_ON_CDL_JSON_ERROR(
+            rootObj, add_JSON_Object(rootObj, "CDL Feature Version", json_object_new_string(CDL_FEATURE_VERSION)));
 
         // Add Performance Versus Command Completion to the JSON object
         if (is_Performance_Versus_Command_Completion_Supported(cdlSettings))
         {
             DECLARE_ZERO_INIT_ARRAY(char, value, 5);
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "", cdlSettings->ataCDLSettings.performanceVsCommandCompletion);
-            json_object_object_add(rootObj, "Performance Versus Command Completion", json_object_new_string(value));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "", cdlSettings->ataCDLSettings.performanceVsCommandCompletion);
+            RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(rootObj, "Performance Versus Command Completion",
+                                                              json_object_new_string(value)));
         }
 
         // Add JSON objects for read descriptor
         for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
         {
             json_object* jdescriptor = json_object_new_object();
+            if (jdescriptor == M_NULLPTR)
+            {
+                json_object_put(rootObj);
+                return MEMORY_FAILURE;
+            }
+            char descriptorKey[20];
+            CDL_JSON_SNPRINTF(descriptorKey, 20, "Descriptor R%" PRIu8 "",
+                              C_CAST(uint8_t, descriptorIndex + UINT8_C(1)));
+            RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(rootObj, descriptorKey, jdescriptor));
             DECLARE_ZERO_INIT_ARRAY(char, timeUnitValue, MAX_TIME_UNIT_STRING_LENGHT);
             translate_TimeUnitType_To_String(
                 cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].timeFieldUnitType, timeUnitValue);
-            json_object_object_add(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue));
-            json_object_object_add(
-                jdescriptor, "Inactive Time",
-                json_object_new_uint64(cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].inactiveTime));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(jdescriptor, "Inactive Time",
+                                json_object_new_uint64(
+                                    cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].inactiveTime)));
             DECLARE_ZERO_INIT_ARRAY(char, value, 5);
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].inactiveTimePolicy);
-            json_object_object_add(jdescriptor, "Inactive Time Policy", json_object_new_string(value));
-            json_object_object_add(
-                jdescriptor, "Active Time",
-                json_object_new_uint64(cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].activeTime));
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].activeTimePolicy);
-            json_object_object_add(jdescriptor, "Active Time Policy", json_object_new_string(value));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].inactiveTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Inactive Time Policy", json_object_new_string(value)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(
+                    jdescriptor, "Active Time",
+                    json_object_new_uint64(cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].activeTime)));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].activeTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(rootObj,
+                                     add_JSON_Object(jdescriptor, "Active Time Policy", json_object_new_string(value)));
             if (is_Total_Time_Policy_Type_Supported(cdlSettings))
             {
-                json_object_object_add(
-                    jdescriptor, "Total Time",
-                    json_object_new_uint64(cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].totalTime));
-                snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                    cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].totalTimePolicy);
-                json_object_object_add(jdescriptor, "Total Time Policy", json_object_new_string(value));
+                RETURN_ON_CDL_JSON_ERROR(
+                    rootObj,
+                    add_JSON_Object(jdescriptor, "Total Time",
+                                    json_object_new_uint64(
+                                        cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].totalTime)));
+                CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                                  cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].totalTimePolicy);
+                RETURN_ON_CDL_JSON_ERROR(
+                    rootObj, add_JSON_Object(jdescriptor, "Total Time Policy", json_object_new_string(value)));
             }
-
-            // Add the read descriptor object to the main JSON object
-            char descriptorKey[20];
-            snprintf_err_handle(descriptorKey, 20, "Descriptor R%" PRIu8 "", C_CAST(uint8_t, (descriptorIndex + 1)));
-            json_object_object_add(rootObj, descriptorKey, jdescriptor);
         }
 
         // Add JSON objects for write descriptor
         for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
         {
             json_object* jdescriptor = json_object_new_object();
+            if (jdescriptor == M_NULLPTR)
+            {
+                json_object_put(rootObj);
+                return MEMORY_FAILURE;
+            }
+            char descriptorKey[20];
+            CDL_JSON_SNPRINTF(descriptorKey, 20, "Descriptor W%" PRIu8 "",
+                              C_CAST(uint8_t, descriptorIndex + UINT8_C(1)));
+            RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(rootObj, descriptorKey, jdescriptor));
             DECLARE_ZERO_INIT_ARRAY(char, timeUnitValue, MAX_TIME_UNIT_STRING_LENGHT);
             translate_TimeUnitType_To_String(
                 cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].timeFieldUnitType, timeUnitValue);
-            json_object_object_add(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue));
-            json_object_object_add(
-                jdescriptor, "Inactive Time",
-                json_object_new_uint64(cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].inactiveTime));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(jdescriptor, "Inactive Time",
+                                json_object_new_uint64(
+                                    cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].inactiveTime)));
             DECLARE_ZERO_INIT_ARRAY(char, value, 5);
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].inactiveTimePolicy);
-            json_object_object_add(jdescriptor, "Inactive Time Policy", json_object_new_string(value));
-            json_object_object_add(
-                jdescriptor, "Active Time",
-                json_object_new_uint64(cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].activeTime));
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].activeTimePolicy);
-            json_object_object_add(jdescriptor, "Active Time Policy", json_object_new_string(value));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].inactiveTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Inactive Time Policy", json_object_new_string(value)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(jdescriptor, "Active Time",
+                                json_object_new_uint64(
+                                    cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].activeTime)));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].activeTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(rootObj,
+                                     add_JSON_Object(jdescriptor, "Active Time Policy", json_object_new_string(value)));
             if (is_Total_Time_Policy_Type_Supported(cdlSettings))
             {
-                json_object_object_add(
-                    jdescriptor, "Total Time",
-                    json_object_new_uint64(cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].totalTime));
-                snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                    cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].totalTimePolicy);
-                json_object_object_add(jdescriptor, "Total Time Policy", json_object_new_string(value));
+                RETURN_ON_CDL_JSON_ERROR(
+                    rootObj,
+                    add_JSON_Object(jdescriptor, "Total Time",
+                                    json_object_new_uint64(
+                                        cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].totalTime)));
+                CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                                  cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].totalTimePolicy);
+                RETURN_ON_CDL_JSON_ERROR(
+                    rootObj, add_JSON_Object(jdescriptor, "Total Time Policy", json_object_new_string(value)));
             }
-
-            // Add the write descriptor object to the main JSON object
-            char descriptorKey[20];
-            snprintf_err_handle(descriptorKey, 20, "Descriptor W%" PRIu8 "", C_CAST(uint8_t, (descriptorIndex + 1)));
-            json_object_object_add(rootObj, descriptorKey, jdescriptor);
         }
 
         // Convert JSON object to formatted string
@@ -216,6 +279,7 @@ static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device
             if (SEC_FILE_SUCCESS != secure_Close_File(cdlJsonLog))
             {
                 print_str("Error closing file!\n");
+                ret = ERROR_WRITING_FILE;
             }
 
             if (ret == SUCCESS)
@@ -280,94 +344,127 @@ static eReturnValues create_ATA_JSON_File_For_CDL_Settings(const tDevice* device
     return ret;
 }
 
-static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* device,
-                                                            tCDLSettings*  cdlSettings,
-                                                            const char*    logPath)
+M_NODISCARD static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* device,
+                                                                        tCDLSettings*  cdlSettings,
+                                                                        const char*    logPath)
 {
     eReturnValues ret = SUCCESS;
 
     // Create a new JSON object
     json_object* rootObj = json_object_new_object();
-    if (rootObj != M_NULLPTR)
+    if (rootObj == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+
     {
         // Add version information
-        json_object_object_add(rootObj, "CDL Feature Version", json_object_new_string(CDL_FEATURE_VERSION));
+        RETURN_ON_CDL_JSON_ERROR(
+            rootObj, add_JSON_Object(rootObj, "CDL Feature Version", json_object_new_string(CDL_FEATURE_VERSION)));
 
         // Add Performance Versus Command Duration Guideline to the JSON object
         DECLARE_ZERO_INIT_ARRAY(char, value, 5);
-        snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                            cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines);
-        json_object_object_add(rootObj, "Performance Versus Command Duration Guidelines",
-                               json_object_new_string(value));
+        CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                          cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines);
+        RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(rootObj, "Performance Versus Command Duration Guidelines",
+                                                          json_object_new_string(value)));
 
         // Add JSON objects for T2A descriptor
         for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
         {
             json_object* jdescriptor = json_object_new_object();
+            if (jdescriptor == M_NULLPTR)
+            {
+                json_object_put(rootObj);
+                return MEMORY_FAILURE;
+            }
+            char descriptorKey[20];
+            CDL_JSON_SNPRINTF(descriptorKey, 20, "T2A Descriptor %" PRIu8 "",
+                              C_CAST(uint8_t, descriptorIndex + UINT8_C(1)));
+            RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(rootObj, descriptorKey, jdescriptor));
             DECLARE_ZERO_INIT_ARRAY(char, timeUnitValue, MAX_TIME_UNIT_STRING_LENGHT);
             translate_TimeUnitType_To_String(
                 cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].timeFieldUnitType, timeUnitValue);
-            json_object_object_add(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue));
-            json_object_object_add(
-                jdescriptor, "Inactive Time",
-                json_object_new_uint64(cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].inactiveTime));
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].inactiveTimePolicy);
-            json_object_object_add(jdescriptor, "Inactive Time Policy", json_object_new_string(value));
-            json_object_object_add(
-                jdescriptor, "Active Time",
-                json_object_new_uint64(cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].activeTime));
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].activeTimePolicy);
-            json_object_object_add(jdescriptor, "Active Time Policy", json_object_new_string(value));
-            json_object_object_add(
-                jdescriptor, "Command Duration Guideline",
-                json_object_new_uint64(
-                    cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].commandDurationGuideline));
-            snprintf_err_handle(
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(jdescriptor, "Inactive Time",
+                                json_object_new_uint64(
+                                    cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].inactiveTime)));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].inactiveTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Inactive Time Policy", json_object_new_string(value)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(
+                    jdescriptor, "Active Time",
+                    json_object_new_uint64(cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].activeTime)));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].activeTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(rootObj,
+                                     add_JSON_Object(jdescriptor, "Active Time Policy", json_object_new_string(value)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(
+                    jdescriptor, "Command Duration Guideline",
+                    json_object_new_uint64(
+                        cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].commandDurationGuideline)));
+            CDL_JSON_SNPRINTF(
                 value, 5, "0x%02" PRIX8 "",
                 cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].CommandDurationGuidelinePolicy);
-            json_object_object_add(jdescriptor, "Command Duration Guideline Policy", json_object_new_string(value));
-
-            // Add the T2A descriptor object to the main JSON object
-            char descriptorKey[20];
-            snprintf_err_handle(descriptorKey, 20, "T2A Descriptor %" PRIu8 "", C_CAST(uint8_t, (descriptorIndex + 1)));
-            json_object_object_add(rootObj, descriptorKey, jdescriptor);
+            RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(jdescriptor, "Command Duration Guideline Policy",
+                                                              json_object_new_string(value)));
         }
 
         // Add JSON objects for T2B descriptor
         for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
         {
             json_object* jdescriptor = json_object_new_object();
+            if (jdescriptor == M_NULLPTR)
+            {
+                json_object_put(rootObj);
+                return MEMORY_FAILURE;
+            }
+            char descriptorKey[20];
+            CDL_JSON_SNPRINTF(descriptorKey, 20, "T2B Descriptor %" PRIu8 "",
+                              C_CAST(uint8_t, descriptorIndex + UINT8_C(1)));
+            RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(rootObj, descriptorKey, jdescriptor));
             DECLARE_ZERO_INIT_ARRAY(char, timeUnitValue, MAX_TIME_UNIT_STRING_LENGHT);
             translate_TimeUnitType_To_String(
                 cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].timeFieldUnitType, timeUnitValue);
-            json_object_object_add(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue));
-            json_object_object_add(
-                jdescriptor, "Inactive Time",
-                json_object_new_uint64(cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].inactiveTime));
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].inactiveTimePolicy);
-            json_object_object_add(jdescriptor, "Inactive Time Policy", json_object_new_string(value));
-            json_object_object_add(
-                jdescriptor, "Active Time",
-                json_object_new_uint64(cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].activeTime));
-            snprintf_err_handle(value, 5, "0x%02" PRIX8 "",
-                                cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].activeTimePolicy);
-            json_object_object_add(jdescriptor, "Active Time Policy", json_object_new_string(value));
-            json_object_object_add(
-                jdescriptor, "Command Duration Guideline",
-                json_object_new_uint64(
-                    cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].commandDurationGuideline));
-            snprintf_err_handle(
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Time Field Unit", json_object_new_string(timeUnitValue)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(jdescriptor, "Inactive Time",
+                                json_object_new_uint64(
+                                    cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].inactiveTime)));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].inactiveTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj, add_JSON_Object(jdescriptor, "Inactive Time Policy", json_object_new_string(value)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(
+                    jdescriptor, "Active Time",
+                    json_object_new_uint64(cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].activeTime)));
+            CDL_JSON_SNPRINTF(value, 5, "0x%02" PRIX8 "",
+                              cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].activeTimePolicy);
+            RETURN_ON_CDL_JSON_ERROR(rootObj,
+                                     add_JSON_Object(jdescriptor, "Active Time Policy", json_object_new_string(value)));
+            RETURN_ON_CDL_JSON_ERROR(
+                rootObj,
+                add_JSON_Object(
+                    jdescriptor, "Command Duration Guideline",
+                    json_object_new_uint64(
+                        cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].commandDurationGuideline)));
+            CDL_JSON_SNPRINTF(
                 value, 5, "0x%02" PRIX8 "",
                 cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].CommandDurationGuidelinePolicy);
-            json_object_object_add(jdescriptor, "Command Duration Guideline Policy", json_object_new_string(value));
-
-            // Add the T2B descriptor object to the main JSON object
-            char descriptorKey[20];
-            snprintf_err_handle(descriptorKey, 20, "T2B Descriptor %" PRIu8 "", C_CAST(uint8_t, (descriptorIndex + 1)));
-            json_object_object_add(rootObj, descriptorKey, jdescriptor);
+            RETURN_ON_CDL_JSON_ERROR(rootObj, add_JSON_Object(jdescriptor, "Command Duration Guideline Policy",
+                                                              json_object_new_string(value)));
         }
 
         // Convert JSON object to formatted string
@@ -400,6 +497,7 @@ static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* devic
             if (SEC_FILE_SUCCESS != secure_Close_File(cdlJsonLog))
             {
                 print_str("Error closing file!\n");
+                ret = ERROR_WRITING_FILE;
             }
 
             if (ret == SUCCESS)
@@ -453,11 +551,16 @@ static eReturnValues create_SCSI_JSON_File_For_CDL_Settings(const tDevice* devic
 M_PARAM_RO(1)
 M_PARAM_RO(2)
 M_PARAM_RO(3)
-OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
-                                                                       tCDLSettings* M_NONNULL  cdlSettings,
-                                                                       const char* M_NONNULL    logPath)
+M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                                   tCDLSettings* M_NONNULL  cdlSettings,
+                                                                                   const char* M_NONNULL    logPath)
 {
     eReturnValues ret = NOT_SUPPORTED;
+
+    if (device == M_NULLPTR || cdlSettings == M_NULLPTR || logPath == M_NULLPTR)
+    {
+        return BAD_PARAMETER;
+    }
 
     if (get_Device_DriveType(device) == ATA_DRIVE)
     {
@@ -471,17 +574,17 @@ OPENSEA_JSONFORMAT_API eReturnValues create_JSON_File_For_CDL_Settings(const tDe
     return ret;
 }
 
-static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
-                                                          tCDLSettings*            cdlSettings,
-                                                          const char*              fileName,
-                                                          bool                     skipValidation)
+M_NODISCARD static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                      tCDLSettings*            cdlSettings,
+                                                                      const char*              fileName,
+                                                                      bool                     skipValidation)
 {
     eReturnValues ret = SUCCESS;
 
     secureFileInfo* cdlJsonfile = secure_Open_File(fileName, "r", M_NULLPTR, M_NULLPTR, M_NULLPTR);
     if (cdlJsonfile && cdlJsonfile->error == SEC_FILE_SUCCESS)
     {
-        char* jsonMem = C_CAST(char*, safe_calloc(cdlJsonfile->fileSize, sizeof(uint8_t)));
+        char* jsonMem = C_CAST(char*, safe_calloc(cdlJsonfile->fileSize + SIZE_T_C(1), sizeof(uint8_t)));
         if (jsonMem)
         {
             if (SEC_FILE_SUCCESS == secure_Read_File(cdlJsonfile, jsonMem, cdlJsonfile->fileSize, sizeof(char),
@@ -522,8 +625,8 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* M_NONNU
                     {
                         // get the descriptor json object
                         char descriptorKey[20];
-                        snprintf_err_handle(descriptorKey, 20, "Descriptor R%" PRIu8 "",
-                                            C_CAST(uint8_t, (descriptorIndex + 1)));
+                        CDL_JSON_SNPRINTF(descriptorKey, 20, "Descriptor R%" PRIu8 "",
+                                          C_CAST(uint8_t, (descriptorIndex + 1)));
                         if (json_object_object_get_ex(rootObj, descriptorKey, &childObj) != 0)
                         {
                             struct json_object* descriptorObj = M_NULLPTR;
@@ -619,8 +722,8 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* M_NONNU
                     {
                         // get the descriptor json object
                         char descriptorKey[20];
-                        snprintf_err_handle(descriptorKey, 20, "Descriptor W%" PRIu8 "",
-                                            C_CAST(uint8_t, (descriptorIndex + 1)));
+                        CDL_JSON_SNPRINTF(descriptorKey, 20, "Descriptor W%" PRIu8 "",
+                                          C_CAST(uint8_t, (descriptorIndex + 1)));
                         if (json_object_object_get_ex(rootObj, descriptorKey, &childObj) != 0)
                         {
                             struct json_object* descriptorObj = M_NULLPTR;
@@ -770,17 +873,17 @@ static eReturnValues parse_ATA_JSON_File_For_CDL_Settings(const tDevice* M_NONNU
     return ret;
 }
 
-static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device,
-                                                           tCDLSettings*  cdlSettings,
-                                                           const char*    fileName,
-                                                           bool           skipValidation)
+M_NODISCARD static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device,
+                                                                       tCDLSettings*  cdlSettings,
+                                                                       const char*    fileName,
+                                                                       bool           skipValidation)
 {
     eReturnValues ret = SUCCESS;
 
     secureFileInfo* cdlJsonfile = secure_Open_File(fileName, "r", M_NULLPTR, M_NULLPTR, M_NULLPTR);
     if (cdlJsonfile && cdlJsonfile->error == SEC_FILE_SUCCESS)
     {
-        char* jsonMem = C_CAST(char*, safe_calloc(cdlJsonfile->fileSize, sizeof(uint8_t)));
+        char* jsonMem = C_CAST(char*, safe_calloc(cdlJsonfile->fileSize + SIZE_T_C(1), sizeof(uint8_t)));
         if (jsonMem)
         {
             if (SEC_FILE_SUCCESS == secure_Read_File(cdlJsonfile, jsonMem, cdlJsonfile->fileSize, sizeof(char),
@@ -822,8 +925,8 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device
                     {
                         // get the descriptor json object
                         char descriptorKey[20];
-                        snprintf_err_handle(descriptorKey, 20, "T2A Descriptor %" PRIu8 "",
-                                            C_CAST(uint8_t, (descriptorIndex + 1)));
+                        CDL_JSON_SNPRINTF(descriptorKey, 20, "T2A Descriptor %" PRIu8 "",
+                                          C_CAST(uint8_t, (descriptorIndex + 1)));
                         if (json_object_object_get_ex(rootObj, descriptorKey, &childObj) != 0)
                         {
                             struct json_object* descriptorObj = M_NULLPTR;
@@ -913,8 +1016,8 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device
                     {
                         // get the descriptor json object
                         char descriptorKey[20];
-                        snprintf_err_handle(descriptorKey, 20, "T2B Descriptor %" PRIu8 "",
-                                            C_CAST(uint8_t, (descriptorIndex + 1)));
+                        CDL_JSON_SNPRINTF(descriptorKey, 20, "T2B Descriptor %" PRIu8 "",
+                                          C_CAST(uint8_t, (descriptorIndex + 1)));
                         if (json_object_object_get_ex(rootObj, descriptorKey, &childObj) != 0)
                         {
                             struct json_object* descriptorObj = M_NULLPTR;
@@ -1061,12 +1164,17 @@ static eReturnValues parse_SCSI_JSON_File_For_CDL_Settings(const tDevice* device
 M_PARAM_RO(1)
 M_PARAM_RW(2)
 M_PARAM_RO(3)
-OPENSEA_JSONFORMAT_API eReturnValues parse_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
-                                                                      tCDLSettings* M_NONNULL  cdlSettings,
-                                                                      const char* M_NONNULL    fileName,
-                                                                      bool                     skipValidation)
+M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues parse_JSON_File_For_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                                  tCDLSettings* M_NONNULL  cdlSettings,
+                                                                                  const char* M_NONNULL    fileName,
+                                                                                  bool skipValidation)
 {
     eReturnValues ret = SUCCESS;
+
+    if (device == M_NULLPTR || cdlSettings == M_NULLPTR || fileName == M_NULLPTR)
+    {
+        return BAD_PARAMETER;
+    }
 
     if (get_Device_DriveType(device) == ATA_DRIVE)
     {
