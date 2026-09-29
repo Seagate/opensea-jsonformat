@@ -358,6 +358,106 @@ M_NODISCARD static eReturnValues create_Node_For_Bool_From_QWord(json_object* no
     return SUCCESS;
 }
 
+M_NODISCARD static eReturnValues create_Node_For_Helium_Pressure_QWord(json_object* node,
+                                            const char*  nodeName,
+                                            uint64_t     valueQword,
+                                            const char*  trueString,
+                                            const char*  falseString)
+{
+    uint8_t status = get_Farm_Status_Byte(valueQword);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
+    {
+        DECLARE_ZERO_INIT_ARRAY(char, value, MAX_BOOL_TO_BOOL_STRING_LENGTH);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            bool format = M_ToBool(M_Byte6(valueQword) & BIT0);
+            if (format)
+            {
+                if (get_Farm_Qword_Data(valueQword) > 1) // 1 = tripped in this format
+                {
+                    if (trueString != M_NULLPTR)
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, trueString)) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                    else
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, "true")) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                }
+                else
+                {
+                    if (falseString != M_NULLPTR)
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, falseString)) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                    else
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, "false")) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                }
+            }
+            else
+            {
+                if (get_Farm_Qword_Data(valueQword) > 0) // any non-zero value is tripped in this format
+                {
+                    if (trueString != M_NULLPTR)
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, trueString)) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                    else
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, "true")) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                }
+                else
+                {
+                    if (falseString != M_NULLPTR)
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, falseString)) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                    else
+                        {
+                            if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, "false")) M_UNLIKELY
+                            {
+                                perror("Error coping FARM bool string for JSON output");
+                            }
+                        }
+                }
+            }
+        }
+        else
+            {
+                if (0 != safe_strcpy(value, MAX_BOOL_TO_BOOL_STRING_LENGTH, "Invalid")) M_UNLIKELY
+                {
+                    perror("Error coping FARM bool string for JSON output");
+                }
+            }
+        return add_JSON_Object(node, nodeName, json_object_new_string(value));
+    }
+    return SUCCESS;
+}
+
 M_NODISCARD static eReturnValues create_Node_For_INT64_From_QWord(json_object* node,
                                                                   const char*  nodeName,
                                                                   uint64_t     valueQword)
@@ -1647,9 +1747,8 @@ M_NODISCARD static eReturnValues create_Node_For_FARM_Reliability_Statistics_Pag
         RETURN_ON_FARM_ERROR(create_Node_For_Head_Data_From_QWords(reliabilityNode, "# Reallocated Candidate Sectors",
                                                                    reliability->numReallocationCandidateSectorsByHead,
                                                                    headCount, FARM_BY_HEAD_TO_UINT64_FROM_QWORD, 0.0));
-        RETURN_ON_FARM_ERROR(create_Node_For_Bool_From_QWord(reliabilityNode, "Helium Pressure Threshold",
-                                                             reliability->heliumPressureThresholdTrip, "Tripped",
-                                                             "Not Tripped"));
+        RETURN_ON_FARM_ERROR(create_Node_For_Helium_Pressure_QWord(reliabilityNode, "Helium Pressure Threshold",
+                                        reliability->heliumPressureThresholdTrip, "Tripped", "Not Tripped"));
         RETURN_ON_FARM_ERROR(create_Node_For_Head_Data_From_QWords(reliabilityNode, "# DOS Ought To Scan",
                                                                    reliability->dosOughtScanCountByHead, headCount,
                                                                    FARM_BY_HEAD_TO_UINT64_FROM_QWORD, 0.0));
