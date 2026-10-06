@@ -1052,18 +1052,18 @@ M_NODISCARD static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(
             if (deviceStatictics->sataStatistics.vendorSpecificStatistics[vendorSpecificIter].isSupported)
             {
                 atleastOneStatisticsAvailable = true;
-                DECLARE_ZERO_INIT_ARRAY(char, statisticName, 64);
+                DECLARE_ZERO_INIT_ARRAY(char, loopstatisticName, 64);
                 if (SEAGATE == is_Seagate_Family(device))
                 {
                     switch (vendorSpecificIter + 1)
                     {
                     case 1: // pressure
-                        M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(statisticName, 64, "Pressure Min/Max Reached"),
+                        M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(loopstatisticName, 64, "Pressure Min/Max Reached"),
                                                "24 literal characters + NUL = 25 bytes < 64");
                         break;
                     default:
                         M_IGNORE_SAFE_INT_CALL(
-                            snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8,
+                            snprintf_err_handle(loopstatisticName, 64, "Vendor Specific Statistic %" PRIu8,
                                                 vendorSpecificIter + 1),
                             "25 literal characters + max 3 (PRIu8, values <= 64) + NUL = 29 bytes < 64");
                         break;
@@ -1071,7 +1071,8 @@ M_NODISCARD static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(
                 }
                 else
                 {
-                    M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(statisticName, 64, "Vendor Specific Statistic %" PRIu8,
+                    M_IGNORE_SAFE_INT_CALL(snprintf_err_handle(loopstatisticName, 64,
+                                                               "Vendor Specific Statistic %" PRIu8,
                                                                vendorSpecificIter + 1),
                                            "25 literal characters + max 3 (PRIu8, values <= 64) + NUL = 29 bytes < 64");
                 }
@@ -1080,7 +1081,7 @@ M_NODISCARD static eReturnValues create_JSON_Output_For_ATA_Device_Statistics(
                     rootNode, create_Node_For_Statistic(
                                   STATISTICS_TYPE_COUNT, vendorSpecificStatistics,
                                   deviceStatictics->sataStatistics.vendorSpecificStatistics[vendorSpecificIter],
-                                  statisticName, M_NULLPTR, false));
+                                  loopstatisticName, M_NULLPTR, false));
                 ++statisticsFound;
             }
         }
