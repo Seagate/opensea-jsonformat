@@ -444,6 +444,7 @@ if force_jsonc_wrap
         'json-c',
         default_options: [
             'default_library=static',
+            'werror=false',
             'build_apps=false',
             'disable_extra_libs=true',
             'disable_json_pointer=false',
@@ -460,6 +461,7 @@ else
         fallback: ['json-c', 'jsonc_dep'],
         default_options: [
             'default_library=static',
+            'werror=false',
             'build_apps=false',
             'disable_extra_libs=true',
             'disable_json_pointer=false',
