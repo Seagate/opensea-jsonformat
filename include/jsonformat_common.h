@@ -15,10 +15,12 @@
 
 #pragma once
 
+// common_public.h must precede the json-c headers: common_types.h defines
+// ssize_t (and marks it as defined) so json-c skips its own duplicate typedef.
+#include "common_public.h"
+
 #include <json.h>
 #include <json_object.h>
-
-#include "common_public.h"
 
 #define JSON_GENERATION_ERROR(operation, message) "{\"" operation "\":{\"Error\":\"" message "\"}}"
 
