@@ -17,6 +17,9 @@
 
 #include "jsonformat_common.h"
 
+#define SMART_ATTRIBUTES_JSON_GENERATION_ERROR                                                                         \
+    JSON_GENERATION_ERROR("SMART Attributes", "Something went wrong generating JSON SMART attributes")
+
 #if defined(__cplusplus)
 extern "C"
 {

@@ -17,6 +17,9 @@
 
 #include "jsonformat_common.h"
 
+#define SCAN_JSON_GENERATION_ERROR                                                                                     \
+    JSON_GENERATION_ERROR("Drives Information", "Something went wrong generating JSON scan data")
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -25,11 +28,12 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API void create_JSON_Output_For_Scan(unsigned int                flags,
-                                                            eVerbosityLevels            scanVerbosity,
-                                                            const char* M_NONNULL       utilityName,
-                                                            const char* M_NONNULL       buildVersion,
-                                                            char* M_NONNULL* M_NULLABLE jsonFormat);
+    M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues
+    create_JSON_Output_For_Scan(unsigned int                flags,
+                                eVerbosityLevels            scanVerbosity,
+                                const char* M_NONNULL       utilityName,
+                                const char* M_NONNULL       buildVersion,
+                                char* M_NONNULL* M_NULLABLE jsonFormat);
 
 #if defined(__cplusplus)
 }

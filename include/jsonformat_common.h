@@ -15,10 +15,14 @@
 
 #pragma once
 
+// common_public.h must precede the json-c headers: common_types.h defines
+// ssize_t (and marks it as defined) so json-c skips its own duplicate typedef.
+#include "common_public.h"
+
 #include <json.h>
 #include <json_object.h>
 
-#include "common_public.h"
+#define JSON_GENERATION_ERROR(operation, message) "{\"" operation "\":{\"Error\":\"" message "\"}}"
 
 #if defined(__cplusplus)
 #    define __STDC_FORMAT_MACROS
@@ -59,15 +63,15 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_RO(5)
-    OPENSEA_JSONFORMAT_API void create_Node_For_Utility_Version(json_object* M_NONNULL rootObject,
-                                                                const char* M_NONNULL  utilityName,
-                                                                const char* M_NONNULL  buildVersion,
-                                                                const char* M_NONNULL  logName,
-                                                                const char* M_NONNULL  jsonVersion);
+    M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues create_Node_For_Utility_Version(json_object* M_NONNULL rootObject,
+                                                                                     const char* M_NONNULL  utilityName,
+                                                                                     const char* M_NONNULL buildVersion,
+                                                                                     const char* M_NONNULL logName,
+                                                                                     const char* M_NONNULL jsonVersion);
     M_PARAM_WO(1)
     M_PARAM_RO(2)
-    OPENSEA_JSONFORMAT_API void create_Node_For_Drive_Information(json_object* M_NONNULL   rootObject,
-                                                                  const tDevice* M_NONNULL device);
+    M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues
+    create_Node_For_Drive_Information(json_object* M_NONNULL rootObject, const tDevice* M_NONNULL device);
 #if defined(__cplusplus)
 }
 #endif

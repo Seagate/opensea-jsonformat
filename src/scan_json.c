@@ -30,17 +30,71 @@
 #define MAX_DRIVE_NODE_NAME_LENGTH      21
 #define MAX_UINT32_TO_DEC_STRING_LENGHT 11
 
-OPENSEA_JSONFORMAT_API void create_JSON_Output_For_Scan(unsigned int          flags,
-                                                        eVerbosityLevels      scanVerbosity,
-                                                        const char* M_NONNULL utilityName,
-                                                        const char* M_NONNULL buildVersion,
-                                                        char**                jsonFormat)
+M_NODISCARD static eReturnValues add_JSON_Object(json_object* parent, const char* key, json_object* child)
 {
-    json_object* rootNode = json_object_new_object();
+    if (child == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    if (json_object_object_add(parent, key, child) != 0)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
 
-    create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Drive Scan", SCAN_JSON_VERSION);
+M_NODISCARD static eReturnValues add_JSON_Array_Element(json_object* parent, json_object* child)
+{
+    if (child == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    if (json_object_array_add(parent, child) != 0)
+    {
+        json_object_put(child);
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
+
+M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_Scan(unsigned int          flags,
+                                                                             eVerbosityLevels      scanVerbosity,
+                                                                             const char* M_NONNULL utilityName,
+                                                                             const char* M_NONNULL buildVersion,
+                                                                             char**                jsonFormat)
+{
+    if (jsonFormat == M_NULLPTR)
+    {
+        return BAD_PARAMETER;
+    }
+
+    *jsonFormat = M_NULLPTR;
+
+    json_object* rootNode = json_object_new_object();
+    if (rootNode == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+
+    if (create_Node_For_Utility_Version(rootNode, utilityName, buildVersion, "Drive Scan", SCAN_JSON_VERSION) !=
+        SUCCESS)
+    {
+        json_object_put(rootNode);
+        return MEMORY_FAILURE;
+    }
 
     json_object* driveListNode = json_object_new_object();
+    if (driveListNode == M_NULLPTR)
+    {
+        json_object_put(rootNode);
+        return MEMORY_FAILURE;
+    }
+    if (add_JSON_Object(rootNode, "Drives Information", driveListNode) != 0)
+    {
+        json_object_put(rootNode);
+        return MEMORY_FAILURE;
+    }
 
     // get the device list
     uint32_t       deviceCount    = UINT32_C(0);
@@ -49,63 +103,137 @@ OPENSEA_JSONFORMAT_API void create_JSON_Output_For_Scan(unsigned int          fl
 
     // add total drives number
     DECLARE_ZERO_INIT_ARRAY(char, totalDrivesValue, MAX_UINT32_TO_DEC_STRING_LENGHT);
-    snprintf_err_handle(totalDrivesValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "", deviceCount);
-    json_object_object_add(driveListNode, "Total Drives", json_object_new_string(totalDrivesValue));
+    M_IGNORE_SAFE_INT_CALL(
+        snprintf_err_handle(totalDrivesValue, MAX_UINT32_TO_DEC_STRING_LENGHT, "%" PRIu32 "", deviceCount),
+        "maximum uint32_t decimal text fits in MAX_UINT32_TO_DEC_STRING_LENGHT");
+    if (add_JSON_Object(driveListNode, "Total Drives", json_object_new_string(totalDrivesValue)) != 0)
+    {
+        safe_free(C_CAST(void**, &scanDeviceList));
+        json_object_put(rootNode);
+        return MEMORY_FAILURE;
+    }
 
     if (ret == SUCCESS || ret == WARN_NOT_ALL_DEVICES_ENUMERATED)
     {
         if (deviceCount > 0)
         {
+            if (scanDeviceList == M_NULLPTR)
+            {
+                json_object_put(rootNode);
+                return MEMORY_FAILURE;
+            }
+
             // create array node for drive list
             json_object* driveListArray = json_object_new_array();
+            if (driveListArray == M_NULLPTR)
+            {
+                safe_free(C_CAST(void**, &scanDeviceList));
+                json_object_put(rootNode);
+                return MEMORY_FAILURE;
+            }
+            if (add_JSON_Object(driveListNode, "Drive List", driveListArray) != 0)
+            {
+                safe_free(C_CAST(void**, &scanDeviceList));
+                json_object_put(rootNode);
+                return MEMORY_FAILURE;
+            }
 
             for (uint32_t devIter = UINT32_C(0); devIter < deviceCount; ++devIter)
             {
                 json_object* driveNode = json_object_new_object();
+                if (driveNode == M_NULLPTR)
+                {
+                    safe_free(C_CAST(void**, &scanDeviceList));
+                    json_object_put(rootNode);
+                    return MEMORY_FAILURE;
+                }
 
-                json_object_object_add(driveNode, "Vendor", json_object_new_string(scanDeviceList[devIter].vendor));
-                json_object_object_add(driveNode, "Handle",
-                                       json_object_new_string(scanDeviceList[devIter].displayHandle));
-                json_object_object_add(driveNode, "Model Number",
-                                       json_object_new_string(scanDeviceList[devIter].modelNumber));
-                json_object_object_add(driveNode, "Serial Number",
-                                       json_object_new_string(scanDeviceList[devIter].serialNumber));
-                json_object_object_add(driveNode, "FwRev",
-                                       json_object_new_string(scanDeviceList[devIter].firmwareVersion));
+                if (add_JSON_Object(driveNode, "Vendor", json_object_new_string(scanDeviceList[devIter].vendor)) != 0 ||
+                    add_JSON_Object(driveNode, "Handle",
+                                    json_object_new_string(scanDeviceList[devIter].displayHandle)) != 0 ||
+                    add_JSON_Object(driveNode, "Model Number",
+                                    json_object_new_string(scanDeviceList[devIter].modelNumber)) != 0 ||
+                    add_JSON_Object(driveNode, "Serial Number",
+                                    json_object_new_string(scanDeviceList[devIter].serialNumber)) != 0 ||
+                    add_JSON_Object(driveNode, "FwRev",
+                                    json_object_new_string(scanDeviceList[devIter].firmwareVersion)) != 0)
+                {
+                    json_object_put(driveNode);
+                    safe_free(C_CAST(void**, &scanDeviceList));
+                    json_object_put(rootNode);
+                    return MEMORY_FAILURE;
+                }
 
                 // create new node, name it Drive ? and then add driveNode in this node
                 json_object* node = json_object_new_object();
+                if (node == M_NULLPTR)
+                {
+                    json_object_put(driveNode);
+                    safe_free(C_CAST(void**, &scanDeviceList));
+                    json_object_put(rootNode);
+                    return MEMORY_FAILURE;
+                }
                 DECLARE_ZERO_INIT_ARRAY(char, driveNodeName, MAX_DRIVE_NODE_NAME_LENGTH);
-                snprintf_err_handle(driveNodeName, MAX_DRIVE_NODE_NAME_LENGTH, "Drive %" PRIu32, (devIter + 1));
-                json_object_object_add(node, driveNodeName, driveNode);
+                M_IGNORE_SAFE_INT_CALL(
+                    snprintf_err_handle(driveNodeName, MAX_DRIVE_NODE_NAME_LENGTH, "Drive %" PRIu32, (devIter + 1)),
+                    "maximum uint32_t drive number fits in MAX_DRIVE_NODE_NAME_LENGTH");
+                if (add_JSON_Object(node, driveNodeName, driveNode) != 0)
+                {
+                    json_object_put(node);
+                    safe_free(C_CAST(void**, &scanDeviceList));
+                    json_object_put(rootNode);
+                    return MEMORY_FAILURE;
+                }
 
                 // Add it into array
-                json_object_array_add(driveListArray, node);
+                if (add_JSON_Array_Element(driveListArray, node) != 0)
+                {
+                    safe_free(C_CAST(void**, &scanDeviceList));
+                    json_object_put(rootNode);
+                    return MEMORY_FAILURE;
+                }
             }
-
-            json_object_object_add(driveListNode, "Drive List", driveListArray);
         }
         else
         {
-            json_object_object_add(driveListNode, "Error", json_object_new_string("No devices found"));
+            if (add_JSON_Object(driveListNode, "Error", json_object_new_string("No devices found")) != 0)
+            {
+                safe_free(C_CAST(void**, &scanDeviceList));
+                json_object_put(rootNode);
+                return MEMORY_FAILURE;
+            }
         }
     }
     else if (ret == PERMISSION_DENIED)
     {
-        json_object_object_add(driveListNode, "Error",
-                               json_object_new_string("Permission to access all devices was denied"));
+        if (add_JSON_Object(driveListNode, "Error",
+                            json_object_new_string("Permission to access all devices was denied")) != 0)
+        {
+            safe_free(C_CAST(void**, &scanDeviceList));
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
     }
     else if (ret == DEVICE_BUSY)
     {
-        json_object_object_add(driveListNode, "Error",
-                               json_object_new_string("All devices reported as busy at this time"));
+        if (add_JSON_Object(driveListNode, "Error",
+                            json_object_new_string("All devices reported as busy at this time")) != 0)
+        {
+            safe_free(C_CAST(void**, &scanDeviceList));
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
     }
     else
     {
-        json_object_object_add(driveListNode, "Error",
-                               json_object_new_string("Unable to get number of devices from OS"));
+        if (add_JSON_Object(driveListNode, "Error",
+                            json_object_new_string("Unable to get number of devices from OS")) != 0)
+        {
+            safe_free(C_CAST(void**, &scanDeviceList));
+            json_object_put(rootNode);
+            return MEMORY_FAILURE;
+        }
     }
-    json_object_object_add(rootNode, "Drives Information", driveListNode);
     safe_free(C_CAST(void**, &scanDeviceList));
 
     // Convert JSON object to formatted string
@@ -115,9 +243,12 @@ OPENSEA_JSONFORMAT_API void create_JSON_Output_For_Scan(unsigned int          fl
     // copy the json output into string
     if (asprintf(jsonFormat, "%s", jstr) < 0)
     {
-        return;
+        json_object_put(rootNode);
+        return MEMORY_FAILURE;
     }
 
     // Free the JSON object
     json_object_put(rootNode);
+
+    return SUCCESS;
 }

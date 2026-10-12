@@ -17,6 +17,9 @@
 #pragma once
 #include "jsonformat_common.h"
 
+#define DRIVE_INFORMATION_JSON_GENERATION_ERROR                                                                        \
+    JSON_GENERATION_ERROR("Drive Information", "Something went wrong generating JSON drive information")
+
 #if defined(__cplusplus)
 extern "C"
 {

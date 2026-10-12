@@ -10,13 +10,15 @@
 //
 // ******************************************************************************************
 //
-// \file smart_attribute_json.h
-// \brief This file defines types and functions related to the JSON-based output for SMART Attributes.
+// \file dst_json.h
+// \brief This file defines types and functions related to the JSON-based output for DST logs.
 
 #pragma once
 
 #include "dst.h"
 #include "jsonformat_common.h"
+
+#define DST_JSON_GENERATION_ERROR JSON_GENERATION_ERROR("DST Log", "Something went wrong generating JSON DST log data")
 
 #if defined(__cplusplus)
 extern "C"
@@ -28,11 +30,11 @@ extern "C"
     M_PARAM_RO(3)
     M_PARAM_RO(4)
     M_PARAM_WO(5)
-    OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_DST(const tDevice* M_NONNULL    device,
-                                                                    ptrDstLogEntries M_NONNULL  entries,
-                                                                    const char* M_NONNULL       utilityName,
-                                                                    const char* M_NONNULL       buildVersion,
-                                                                    char* M_NONNULL* M_NULLABLE jsonFormat);
+    M_NODISCARD OPENSEA_JSONFORMAT_API eReturnValues create_JSON_Output_For_DST(const tDevice* M_NONNULL   device,
+                                                                                ptrDstLogEntries M_NONNULL entries,
+                                                                                const char* M_NONNULL      utilityName,
+                                                                                const char* M_NONNULL      buildVersion,
+                                                                                char* M_NONNULL* M_NULLABLE jsonFormat);
 #if defined(__cplusplus)
 }
 #endif

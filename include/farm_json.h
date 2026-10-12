@@ -18,6 +18,8 @@
 #include "farm_log.h"
 #include "jsonformat_common.h"
 
+#define FARM_JSON_GENERATION_ERROR JSON_GENERATION_ERROR("FARM Log", "Something went wrong generating JSON FARM data")
+
 #if defined(__cplusplus)
 extern "C"
 {

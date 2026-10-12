@@ -19,6 +19,9 @@
 #include "jsonformat_common.h"
 #include "seagate_operations.h"
 
+#define DEVICE_STATISTICS_JSON_GENERATION_ERROR                                                                        \
+    JSON_GENERATION_ERROR("Device Statistics", "Something went wrong generating JSON device statistics")
+
 #if defined(__cplusplus)
 extern "C"
 {
