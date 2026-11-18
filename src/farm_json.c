@@ -803,7 +803,6 @@ M_NODISCARD static eReturnValues create_Node_For_Head_Data_With_Delta_Or_Unit_Fr
         return create_Node_For_Head_Data_From_QWords(node, updatedNodeName, byHead, numberOfHeads,
                                                      FARM_BY_HEAD_TO_UINT64_FROM_QWORD, 0.001);
     }
-    return SUCCESS;
 }
 
 #define THREE_STATS_IN_ONE    3
